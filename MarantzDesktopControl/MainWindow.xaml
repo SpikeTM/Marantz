@@ -11,6 +11,15 @@
         MinWidth="1280"
         Background="#111214">
     <Window.Resources>
+        <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#15171A" />
+        <SolidColorBrush x:Key="{x:Static SystemColors.WindowTextBrushKey}" Color="#F5EAD2" />
+        <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="#23262B" />
+        <SolidColorBrush x:Key="{x:Static SystemColors.ControlTextBrushKey}" Color="#F5EAD2" />
+        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#5D503B" />
+        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#FFF5DF" />
+        <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="#3A3F46" />
+        <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="#FFF0D2" />
+
         <SolidColorBrush x:Key="ComboBox.Static.Background" Color="#1A1C20" />
         <SolidColorBrush x:Key="ComboBox.Static.Border" Color="#6A6D72" />
         <SolidColorBrush x:Key="ComboBox.Static.Glyph" Color="#E6D6B3" />
@@ -101,6 +110,16 @@
             <Setter Property="Padding" Value="6,4" />
             <Setter Property="Margin" Value="4" />
             <Setter Property="TextElement.Foreground" Value="#ECE3CF" />
+            <Setter Property="IsEditable" Value="False" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.85" />
+                    <Setter Property="Foreground" Value="#D8CCB3" />
+                </Trigger>
+            </Style.Triggers>
         </Style>
 
         <Style TargetType="ComboBoxItem">
@@ -247,7 +266,18 @@
 
                             <Border Grid.Column="1" Width="260" Height="160" HorizontalAlignment="Center" VerticalAlignment="Center" CornerRadius="80" BorderBrush="#8E8A80" BorderThickness="1.2" Padding="14" Background="{StaticResource GlassBrush}">
                                 <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                    <TextBlock Text="marantz" FontFamily="Georgia" FontSize="35" FontWeight="Bold" Foreground="#D8C6A2" HorizontalAlignment="Center" Margin="0,-5,0,6" />
+                                    <TextBlock Text="AVR" FontFamily="Palatino Linotype" FontSize="42" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,-9,0,2" Opacity="0.98">
+                                        <TextBlock.Foreground>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                <GradientStop Color="#F1E7D0" Offset="0" />
+                                                <GradientStop Color="#D8C6A2" Offset="0.42" />
+                                                <GradientStop Color="#A5916C" Offset="1" />
+                                            </LinearGradientBrush>
+                                        </TextBlock.Foreground>
+                                        <TextBlock.Effect>
+                                            <DropShadowEffect Color="#000000" BlurRadius="10" ShadowDepth="1" Opacity="0.4" />
+                                        </TextBlock.Effect>
+                                    </TextBlock>
                                     <TextBlock x:Name="InputText" Text="Unknown" FontSize="20" HorizontalAlignment="Center" Foreground="#F5F2E9" />
                                     <TextBlock x:Name="VolumeText" Text="Unknown" FontSize="24" FontWeight="SemiBold" HorizontalAlignment="Center" Foreground="#EFE8D6" />
                                     <TextBlock x:Name="ZoneText" Text="MAIN ZONE" FontSize="11" Foreground="#A8B1B9" HorizontalAlignment="Center" />
