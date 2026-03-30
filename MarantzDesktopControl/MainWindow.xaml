@@ -94,28 +94,43 @@
 
         <Style TargetType="ComboBox">
             <Setter Property="Background" Value="#17191C" />
-            <Setter Property="Foreground" Value="#ECE3CF" />
+            <Setter Property="Foreground" Value="#FFF7E8" />
             <Setter Property="BorderBrush" Value="#5A5D60" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="FontFamily" Value="Bahnschrift" />
             <Setter Property="Padding" Value="6,4" />
             <Setter Property="Margin" Value="4" />
-            <Setter Property="TextElement.Foreground" Value="#ECE3CF" />
+            <Setter Property="TextElement.Foreground" Value="#FFF7E8" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Foreground" Value="#DCCFB4" />
+                    <Setter Property="TextElement.Foreground" Value="#DCCFB4" />
+                    <Setter Property="Background" Value="#2A2D31" />
+                    <Setter Property="BorderBrush" Value="#74787E" />
+                    <Setter Property="Opacity" Value="1" />
+                </Trigger>
+            </Style.Triggers>
         </Style>
 
         <Style TargetType="ComboBoxItem">
-            <Setter Property="Foreground" Value="#F2E8D3" />
-            <Setter Property="Background" Value="#1B1D21" />
+            <Setter Property="Foreground" Value="#FFF7E8" />
+            <Setter Property="Background" Value="#17191D" />
             <Setter Property="Padding" Value="8,4" />
             <Setter Property="FontFamily" Value="Bahnschrift" />
+            <Setter Property="FontWeight" Value="SemiBold" />
             <Style.Triggers>
                 <Trigger Property="IsHighlighted" Value="True">
-                    <Setter Property="Background" Value="#3B3F45" />
-                    <Setter Property="Foreground" Value="#FFF4DB" />
+                    <Setter Property="Background" Value="#4A5059" />
+                    <Setter Property="Foreground" Value="#FFFFFF" />
                 </Trigger>
                 <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="#5A4E3A" />
-                    <Setter Property="Foreground" Value="#FFF3D8" />
+                    <Setter Property="Background" Value="#756142" />
+                    <Setter Property="Foreground" Value="#FFFFFF" />
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Foreground" Value="#C9BC9F" />
+                    <Setter Property="Opacity" Value="1" />
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -247,7 +262,7 @@
 
                             <Border Grid.Column="1" Width="260" Height="160" HorizontalAlignment="Center" VerticalAlignment="Center" CornerRadius="80" BorderBrush="#8E8A80" BorderThickness="1.2" Padding="14" Background="{StaticResource GlassBrush}">
                                 <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                    <TextBlock Text="marantz" FontFamily="Georgia" FontSize="35" FontWeight="Bold" Foreground="#D8C6A2" HorizontalAlignment="Center" Margin="0,-5,0,6" />
+                                    <TextBlock Text="AVR" FontFamily="Georgia" FontSize="35" FontWeight="Bold" Foreground="#D8C6A2" HorizontalAlignment="Center" Margin="0,-5,0,6" />
                                     <TextBlock x:Name="InputText" Text="Unknown" FontSize="20" HorizontalAlignment="Center" Foreground="#F5F2E9" />
                                     <TextBlock x:Name="VolumeText" Text="Unknown" FontSize="24" FontWeight="SemiBold" HorizontalAlignment="Center" Foreground="#EFE8D6" />
                                     <TextBlock x:Name="ZoneText" Text="MAIN ZONE" FontSize="11" Foreground="#A8B1B9" HorizontalAlignment="Center" />
