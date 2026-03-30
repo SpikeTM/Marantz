@@ -6,6 +6,7 @@
         mc:Ignorable="d"
         Title="Marantz SR5010 Desktop Control"
         Height="920"
+        Icon="Resources/app.ico"
         Width="1480"
         MinHeight="840"
         MinWidth="1280"

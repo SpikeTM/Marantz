@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("MarantzDesktopControl")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e82dddf5adb03020dbe3da1970013a2a458317d2")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a173c5b8ebb84efd74c78b7adb418a8dcd0fd4f0")]
 [assembly: System.Reflection.AssemblyProductAttribute("MarantzDesktopControl")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MarantzDesktopControl")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
