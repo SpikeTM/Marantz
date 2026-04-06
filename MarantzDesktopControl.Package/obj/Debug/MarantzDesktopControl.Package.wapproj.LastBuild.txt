@@ -1,0 +1,15 @@
+C:\Users\solly\Documents\GitHub\Marantz\MarantzDesktopControl.Package\Images\SplashScreen.scale-200.png
+C:\Users\solly\Documents\GitHub\Marantz\MarantzDesktopControl.Package\Images\LockScreenLogo.scale-200.png
+C:\Users\solly\Documents\GitHub\Marantz\MarantzDesktopControl.Package\Images\Square150x150Logo.scale-200.png
+C:\Users\solly\Documents\GitHub\Marantz\MarantzDesktopControl.Package\Images\Square44x44Logo.scale-200.png
+C:\Users\solly\Documents\GitHub\Marantz\MarantzDesktopControl.Package\Images\Square44x44Logo.targetsize-24_altform-unplated.png
+C:\Users\solly\Documents\GitHub\Marantz\MarantzDesktopControl.Package\Images\StoreLogo.png
+C:\Users\solly\Documents\GitHub\Marantz\MarantzDesktopControl.Package\Images\Wide310x150Logo.scale-200.png
+C:\Users\solly\Documents\GitHub\Marantz\MarantzDesktopControl.Package\bin\AnyCPU\Debug\resources.pri
+C:\Users\solly\.nuget\packages\microsoft.windows.sdk.net.ref\10.0.17763.57\lib\net8.0\Microsoft.Windows.SDK.NET.dll
+C:\Users\solly\.nuget\packages\microsoft.windows.sdk.net.ref\10.0.17763.57\lib\net8.0\WinRT.Runtime.dll
+C:\Users\solly\Documents\GitHub\Marantz\MarantzDesktopControl\bin\Debug\net8.0-windows10.0.17763.0\MarantzDesktopControl.deps.json
+C:\Users\solly\Documents\GitHub\Marantz\MarantzDesktopControl\obj\Debug\net8.0-windows10.0.17763.0\apphost.exe
+C:\Users\solly\Documents\GitHub\Marantz\MarantzDesktopControl\bin\Debug\net8.0-windows10.0.17763.0\MarantzDesktopControl.runtimeconfig.json
+C:\Users\solly\Documents\GitHub\Marantz\MarantzDesktopControl\bin\Debug\net8.0-windows10.0.17763.0\MarantzDesktopControl.dll
+C:\Users\solly\Documents\GitHub\Marantz\MarantzDesktopControl\bin\Debug\net8.0-windows10.0.17763.0\MarantzDesktopControl.pdb

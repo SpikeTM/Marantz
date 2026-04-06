@@ -1,0 +1,15 @@
+﻿using System.Configuration;
+using System.Data;
+using System.Windows;
+using MarantzDesktopControl.Services;
+
+namespace MarantzDesktopControl;
+
+/// <summary>
+/// Interaction logic for App.xaml
+/// </summary>
+public partial class App : Application
+{
+    public static LicenseService License { get; } = new();
+}
+

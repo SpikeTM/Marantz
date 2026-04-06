@@ -1,0 +1,63 @@
+﻿using Windows.Services.Store;
+
+namespace MarantzDesktopControl.Services;
+
+public sealed class LicenseService
+{
+    private StoreAppLicense? _license;
+
+    public bool IsTrial { get; private set; } = true;
+    public bool IsActive { get; private set; }
+    public DateTimeOffset TrialExpiration { get; private set; }
+    public uint TrialRemainingDays { get; private set; }
+
+    public async Task InitializeAsync()
+    {
+        try
+        {
+            StoreContext context = StoreContext.GetDefault();
+            _license = await context.GetAppLicenseAsync();
+
+            IsActive = _license.IsActive;
+            IsTrial = _license.IsTrial;
+
+            if (IsTrial && _license.ExpirationDate > DateTimeOffset.Now)
+            {
+                TrialExpiration = _license.ExpirationDate;
+                TrialRemainingDays = (uint)Math.Max(0, (_license.ExpirationDate - DateTimeOffset.Now).Days);
+            }
+        }
+        catch (Exception)
+        {
+            // Outside of a Store-packaged context (e.g. debug/sideload),
+            // treat the app as a full license so development is unblocked.
+            IsTrial = false;
+            IsActive = true;
+        }
+    }
+
+    public async Task PromptPurchaseAsync()
+    {
+        try
+        {
+            StoreContext context = StoreContext.GetDefault();
+            StoreProductResult result = await context.GetStoreProductForCurrentAppAsync();
+
+            if (result.Product is not null)
+            {
+                StorePurchaseResult purchase = await result.Product.RequestPurchaseAsync();
+
+                if (purchase.Status == StorePurchaseStatus.Succeeded ||
+                    purchase.Status == StorePurchaseStatus.AlreadyPurchased)
+                {
+                    IsTrial = false;
+                    IsActive = true;
+                }
+            }
+        }
+        catch (Exception)
+        {
+            // Purchase flow unavailable — ignore.
+        }
+    }
+}

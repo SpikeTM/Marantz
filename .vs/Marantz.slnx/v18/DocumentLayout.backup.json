@@ -1,0 +1,133 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\solly\\Documents\\GitHub\\Marantz\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{1FCFD015-7D2D-23B0-2108-7DDD69D7AA4A}|MarantzDesktopControl.Package\\MarantzDesktopControl.Package.wapproj|c:\\users\\solly\\documents\\github\\marantz\\marantzdesktopcontrol.package\\marantzdesktopcontrol.package.wapproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{1FCFD015-7D2D-23B0-2108-7DDD69D7AA4A}|MarantzDesktopControl.Package\\MarantzDesktopControl.Package.wapproj|solutionrelative:marantzdesktopcontrol.package\\marantzdesktopcontrol.package.wapproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1FCFD015-7D2D-23B0-2108-7DDD69D7AA4A}|MarantzDesktopControl.Package\\MarantzDesktopControl.Package.wapproj|c:\\users\\solly\\documents\\github\\marantz\\marantzdesktopcontrol.package\\package.appxmanifest||{4D47164B-07B6-4A52-A855-728D6A2E2AA3}",
+      "RelativeMoniker": "D:0:0:{1FCFD015-7D2D-23B0-2108-7DDD69D7AA4A}|MarantzDesktopControl.Package\\MarantzDesktopControl.Package.wapproj|solutionrelative:marantzdesktopcontrol.package\\package.appxmanifest||{4D47164B-07B6-4A52-A855-728D6A2E2AA3}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{557981B4-5FDA-E5FF-BE2C-7F72EE7D4BC4}|MarantzDesktopControl\\MarantzDesktopControl.csproj|c:\\users\\solly\\documents\\github\\marantz\\marantzdesktopcontrol\\mainwindow.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{557981B4-5FDA-E5FF-BE2C-7F72EE7D4BC4}|MarantzDesktopControl\\MarantzDesktopControl.csproj|solutionrelative:marantzdesktopcontrol\\mainwindow.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{557981B4-5FDA-E5FF-BE2C-7F72EE7D4BC4}|MarantzDesktopControl\\MarantzDesktopControl.csproj|c:\\users\\solly\\documents\\github\\marantz\\marantzdesktopcontrol\\marantzdesktopcontrol.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{557981B4-5FDA-E5FF-BE2C-7F72EE7D4BC4}|MarantzDesktopControl\\MarantzDesktopControl.csproj|solutionrelative:marantzdesktopcontrol\\marantzdesktopcontrol.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{557981B4-5FDA-E5FF-BE2C-7F72EE7D4BC4}|MarantzDesktopControl\\MarantzDesktopControl.csproj|c:\\users\\solly\\documents\\github\\marantz\\marantzdesktopcontrol\\services\\licenseservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{557981B4-5FDA-E5FF-BE2C-7F72EE7D4BC4}|MarantzDesktopControl\\MarantzDesktopControl.csproj|solutionrelative:marantzdesktopcontrol\\services\\licenseservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{557981B4-5FDA-E5FF-BE2C-7F72EE7D4BC4}|MarantzDesktopControl\\MarantzDesktopControl.csproj|c:\\users\\solly\\documents\\github\\marantz\\marantzdesktopcontrol\\app.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{557981B4-5FDA-E5FF-BE2C-7F72EE7D4BC4}|MarantzDesktopControl\\MarantzDesktopControl.csproj|solutionrelative:marantzdesktopcontrol\\app.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{557981B4-5FDA-E5FF-BE2C-7F72EE7D4BC4}|MarantzDesktopControl\\MarantzDesktopControl.csproj|c:\\users\\solly\\documents\\github\\marantz\\marantzdesktopcontrol\\mainwindow.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{557981B4-5FDA-E5FF-BE2C-7F72EE7D4BC4}|MarantzDesktopControl\\MarantzDesktopControl.csproj|solutionrelative:marantzdesktopcontrol\\mainwindow.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 4,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "MainWindow.xaml",
+              "DocumentMoniker": "C:\\Users\\solly\\Documents\\GitHub\\Marantz\\MarantzDesktopControl\\MainWindow.xaml",
+              "RelativeDocumentMoniker": "MarantzDesktopControl\\MainWindow.xaml",
+              "ToolTip": "C:\\Users\\solly\\Documents\\GitHub\\Marantz\\MarantzDesktopControl\\MainWindow.xaml",
+              "RelativeToolTip": "MarantzDesktopControl\\MainWindow.xaml",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-04-01T03:33:02.768Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "App.xaml.cs",
+              "DocumentMoniker": "C:\\Users\\solly\\Documents\\GitHub\\Marantz\\MarantzDesktopControl\\App.xaml.cs",
+              "RelativeDocumentMoniker": "MarantzDesktopControl\\App.xaml.cs",
+              "ToolTip": "C:\\Users\\solly\\Documents\\GitHub\\Marantz\\MarantzDesktopControl\\App.xaml.cs",
+              "RelativeToolTip": "MarantzDesktopControl\\App.xaml.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAxwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-01T03:32:02.957Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "LicenseService.cs",
+              "DocumentMoniker": "C:\\Users\\solly\\Documents\\GitHub\\Marantz\\MarantzDesktopControl\\Services\\LicenseService.cs",
+              "RelativeDocumentMoniker": "MarantzDesktopControl\\Services\\LicenseService.cs",
+              "ToolTip": "C:\\Users\\solly\\Documents\\GitHub\\Marantz\\MarantzDesktopControl\\Services\\LicenseService.cs",
+              "RelativeToolTip": "MarantzDesktopControl\\Services\\LicenseService.cs",
+              "ViewState": "AgIAAAQAAAAAAAAAAEBUwD0AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-01T03:31:55.983Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "MarantzDesktopControl.csproj",
+              "DocumentMoniker": "C:\\Users\\solly\\Documents\\GitHub\\Marantz\\MarantzDesktopControl\\MarantzDesktopControl.csproj",
+              "RelativeDocumentMoniker": "MarantzDesktopControl\\MarantzDesktopControl.csproj",
+              "ToolTip": "C:\\Users\\solly\\Documents\\GitHub\\Marantz\\MarantzDesktopControl\\MarantzDesktopControl.csproj",
+              "RelativeToolTip": "MarantzDesktopControl\\MarantzDesktopControl.csproj",
+              "ViewState": "AgIAAAkAAAAAAAAAAABBwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-04-01T03:31:44.016Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "MarantzDesktopControl.Package.wapproj",
+              "DocumentMoniker": "C:\\Users\\solly\\Documents\\GitHub\\Marantz\\MarantzDesktopControl.Package\\MarantzDesktopControl.Package.wapproj",
+              "RelativeDocumentMoniker": "MarantzDesktopControl.Package\\MarantzDesktopControl.Package.wapproj",
+              "ToolTip": "C:\\Users\\solly\\Documents\\GitHub\\Marantz\\MarantzDesktopControl.Package\\MarantzDesktopControl.Package.wapproj",
+              "RelativeToolTip": "MarantzDesktopControl.Package\\MarantzDesktopControl.Package.wapproj",
+              "ViewState": "AgIAAC0AAAAAAAAAAAAswEEAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2026-04-01T03:22:47.565Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Package.appxmanifest",
+              "DocumentMoniker": "C:\\Users\\solly\\Documents\\GitHub\\Marantz\\MarantzDesktopControl.Package\\Package.appxmanifest",
+              "RelativeDocumentMoniker": "MarantzDesktopControl.Package\\Package.appxmanifest",
+              "ToolTip": "C:\\Users\\solly\\Documents\\GitHub\\Marantz\\MarantzDesktopControl.Package\\Package.appxmanifest",
+              "RelativeToolTip": "MarantzDesktopControl.Package\\Package.appxmanifest",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001793|",
+              "WhenOpened": "2026-04-01T03:22:50.077Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "MainWindow.xaml.cs",
+              "DocumentMoniker": "C:\\Users\\solly\\Documents\\GitHub\\Marantz\\MarantzDesktopControl\\MainWindow.xaml.cs",
+              "RelativeDocumentMoniker": "MarantzDesktopControl\\MainWindow.xaml.cs",
+              "ToolTip": "C:\\Users\\solly\\Documents\\GitHub\\Marantz\\MarantzDesktopControl\\MainWindow.xaml.cs",
+              "RelativeToolTip": "MarantzDesktopControl\\MainWindow.xaml.cs",
+              "ViewState": "AgIAAIgAAAAAAAAAAIBJwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-01T03:33:19.981Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

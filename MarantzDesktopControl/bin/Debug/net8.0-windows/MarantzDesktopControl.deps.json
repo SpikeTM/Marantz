@@ -1,0 +1,23 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v8.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v8.0": {
+      "MarantzDesktopControl/1.0.0": {
+        "runtime": {
+          "MarantzDesktopControl.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "MarantzDesktopControl/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}
