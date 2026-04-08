@@ -1,0 +1,2 @@
+MainPackage=C:\Users\solly\Documents\GitHub\Marantz\MarantzDesktopControl.Package\bin\x86\Release\MarantzDesktopControl.Package_1.0.22.0_x86.msix
+SymbolPackage=C:\Users\solly\Documents\GitHub\Marantz\MarantzDesktopControl.Package\obj\x86\Release\Symbols\MarantzDesktopControl.Package_1.0.22.0_x86.appxsym

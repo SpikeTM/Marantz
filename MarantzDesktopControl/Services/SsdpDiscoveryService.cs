@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Http;
 using System.Net.NetworkInformation;
@@ -11,30 +12,214 @@ namespace MarantzDesktopControl.Services;
 
 public sealed class SsdpDiscoveryService
 {
-    private static readonly Regex HeaderRegex = new("^(?<k>[^:]+):\\s*(?<v>.+)$", RegexOptions.Multiline | RegexOptions.Compiled);
-    private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMilliseconds(750) };
+    /// <summary>
+    /// IEEE OUI prefixes for Marantz Japan Inc. (00-06-78) and Denon, Ltd. (00-05-CD).
+    /// </summary>
+    private static readonly string[] KnownOuiPrefixes = ["00-06-78", "00-05-CD"];
 
-    public async Task<IReadOnlyList<DiscoveredReceiver>> DiscoverMarantzReceiversAsync(TimeSpan timeout, CancellationToken cancellationToken = default)
+    private static readonly Regex HeaderRegex = new(
+        "^(?<k>[^:]+):\\s*(?<v>.+)$",
+        RegexOptions.Multiline | RegexOptions.Compiled);
+
+    private static readonly Regex ArpEntryRegex = new(
+        @"^\s*(?<ip>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s+(?<mac>[0-9a-fA-F]{2}(?:-[0-9a-fA-F]{2}){5})\s+\w+",
+        RegexOptions.Multiline | RegexOptions.Compiled);
+
+    private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(2) };
+
+    public async Task<IReadOnlyList<DiscoveredReceiver>> DiscoverMarantzReceiversAsync(
+        TimeSpan timeout,
+        IProgress<string>? progress = null,
+        CancellationToken cancellationToken = default)
     {
         DateTime deadline = DateTime.UtcNow.Add(timeout);
-        var discovered = new Dictionary<string, DiscoveredReceiver>(StringComparer.OrdinalIgnoreCase);
-        var discoveredLock = new object();
+        var discovered = new ConcurrentDictionary<string, DiscoveredReceiver>(StringComparer.OrdinalIgnoreCase);
 
-        Task ssdpTask = DiscoverViaSsdpAsync(discovered, discoveredLock, deadline, cancellationToken);
-        Task subnetTask = DiscoverViaSubnetProbeAsync(discovered, discoveredLock, deadline, cancellationToken);
-        await Task.WhenAll(ssdpTask, subnetTask);
+        // Phase 1 (instant): check existing ARP cache for known Marantz/Denon MAC prefixes.
+        progress?.Report("Checking ARP cache for Marantz devices...");
+        List<string> cachedIps = GetMarantzIpsFromArpCache();
+        if (cachedIps.Count > 0)
+        {
+            progress?.Report($"Found {cachedIps.Count} Marantz MAC(s) in ARP cache, verifying...");
+            await ProbeIpListAsync(cachedIps, discovered, deadline, cancellationToken);
+        }
 
-        return discovered.Values.OrderBy(x => x.FriendlyName).ThenBy(x => x.IpAddress).ToList();
+        // Early exit if we already found receivers and less than 2 seconds remain.
+        if (!discovered.IsEmpty && DateTime.UtcNow.Add(TimeSpan.FromSeconds(2)) >= deadline)
+        {
+            progress?.Report($"Scan complete — found {discovered.Count} receiver(s).");
+            return ToSortedList(discovered);
+        }
+
+        // Phase 2 (parallel): SSDP multicast + ping sweep → ARP re-check.
+        progress?.Report("Scanning network (SSDP + ARP sweep)...");
+        Task ssdpTask = DiscoverViaSsdpAsync(discovered, deadline, cancellationToken);
+        Task sweepTask = PingSweepThenProbeArpAsync(discovered, deadline, progress, cancellationToken);
+        await Task.WhenAll(ssdpTask, sweepTask);
+
+        // Phase 3 (fallback): brute-force HTTP probe when nothing else worked.
+        if (discovered.IsEmpty && DateTime.UtcNow < deadline)
+        {
+            progress?.Report("Trying direct HTTP probes on subnet...");
+            await DiscoverViaSubnetProbeAsync(discovered, deadline, cancellationToken);
+        }
+
+        progress?.Report(discovered.IsEmpty
+            ? "Scan complete — no receivers found."
+            : $"Scan complete — found {discovered.Count} receiver(s).");
+
+        return ToSortedList(discovered);
     }
 
-    private async Task DiscoverViaSsdpAsync(Dictionary<string, DiscoveredReceiver> discovered, object discoveredLock, DateTime deadline, CancellationToken cancellationToken)
+    private static IReadOnlyList<DiscoveredReceiver> ToSortedList(
+        ConcurrentDictionary<string, DiscoveredReceiver> discovered) =>
+        discovered.Values.OrderBy(x => x.FriendlyName).ThenBy(x => x.IpAddress).ToList();
+
+    // ──────────────────────────────────────────────────────────────────
+    //  ARP-based discovery (MAC address lookup)
+    // ──────────────────────────────────────────────────────────────────
+
+    private static List<string> GetMarantzIpsFromArpCache()
+    {
+        try
+        {
+            using var process = Process.Start(new ProcessStartInfo("arp", "-a")
+            {
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            });
+
+            if (process is null)
+            {
+                return [];
+            }
+
+            string output = process.StandardOutput.ReadToEnd();
+            process.WaitForExit(3000);
+            return ParseArpOutputForMarantz(output);
+        }
+        catch
+        {
+            return [];
+        }
+    }
+
+    private static List<string> ParseArpOutputForMarantz(string arpOutput)
+    {
+        var results = new List<string>();
+        foreach (Match match in ArpEntryRegex.Matches(arpOutput))
+        {
+            string mac = match.Groups["mac"].Value;
+            if (KnownOuiPrefixes.Any(prefix => mac.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
+            {
+                results.Add(match.Groups["ip"].Value);
+            }
+        }
+
+        return results;
+    }
+
+    private async Task PingSweepThenProbeArpAsync(
+        ConcurrentDictionary<string, DiscoveredReceiver> discovered,
+        DateTime deadline,
+        IProgress<string>? progress,
+        CancellationToken cancellationToken)
+    {
+        List<string> candidates = GetLocalSubnetCandidates();
+        if (candidates.Count == 0)
+        {
+            return;
+        }
+
+        // Ping sweep to populate the OS ARP cache.
+        using var throttle = new SemaphoreSlim(80);
+        var tasks = new List<Task>();
+
+        foreach (string ip in candidates)
+        {
+            if (DateTime.UtcNow >= deadline || cancellationToken.IsCancellationRequested)
+            {
+                break;
+            }
+
+            await throttle.WaitAsync(cancellationToken);
+            tasks.Add(Task.Run(async () =>
+            {
+                try
+                {
+                    using var ping = new Ping();
+                    await ping.SendPingAsync(ip, 500);
+                }
+                catch
+                {
+                    // Ignore — we only care about populating the ARP table.
+                }
+                finally
+                {
+                    throttle.Release();
+                }
+            }, cancellationToken));
+        }
+
+        try
+        {
+            await Task.WhenAll(tasks);
+        }
+        catch
+        {
+            // Ignore aggregate exceptions from cancelled/faulted tasks.
+        }
+
+        if (DateTime.UtcNow >= deadline)
+        {
+            return;
+        }
+
+        // Re-read ARP cache after the sweep.
+        List<string> marantzIps = GetMarantzIpsFromArpCache();
+        marantzIps.RemoveAll(ip => discovered.ContainsKey(ip));
+
+        if (marantzIps.Count > 0)
+        {
+            progress?.Report($"Found {marantzIps.Count} new Marantz MAC(s) after sweep, verifying...");
+            await ProbeIpListAsync(marantzIps, discovered, deadline, cancellationToken);
+        }
+    }
+
+    private async Task ProbeIpListAsync(
+        List<string> ipAddresses,
+        ConcurrentDictionary<string, DiscoveredReceiver> discovered,
+        DateTime deadline,
+        CancellationToken cancellationToken)
+    {
+        var tasks = ipAddresses.Select(async ip =>
+        {
+            DiscoveredReceiver? receiver = await TryProbeReceiverByIpAsync(ip, deadline, cancellationToken);
+            if (receiver is not null)
+            {
+                discovered[ip] = receiver;
+            }
+        });
+
+        await Task.WhenAll(tasks);
+    }
+
+    // ──────────────────────────────────────────────────────────────────
+    //  SSDP multicast discovery
+    // ──────────────────────────────────────────────────────────────────
+
+    private async Task DiscoverViaSsdpAsync(
+        ConcurrentDictionary<string, DiscoveredReceiver> discovered,
+        DateTime deadline,
+        CancellationToken cancellationToken)
     {
         using var udp = new UdpClient();
         udp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
         udp.EnableBroadcast = true;
 
-        string request = string.Join("\r\n", new[]
-        {
+        string request = string.Join("\r\n",
+        [
             "M-SEARCH * HTTP/1.1",
             "HOST: 239.255.255.250:1900",
             "MAN: \"ssdp:discover\"",
@@ -42,11 +227,19 @@ public sealed class SsdpDiscoveryService
             "ST: ssdp:all",
             "",
             ""
-        });
+        ]);
 
         byte[] payload = Encoding.ASCII.GetBytes(request);
         var multicastEndpoint = new IPEndPoint(IPAddress.Parse("239.255.255.250"), 1900);
-        await udp.SendAsync(payload, payload.Length, multicastEndpoint);
+
+        for (int i = 0; i < 3; i++)
+        {
+            await udp.SendAsync(payload, payload.Length, multicastEndpoint);
+            if (i < 2)
+            {
+                await Task.Delay(150, cancellationToken);
+            }
+        }
 
         while (DateTime.UtcNow < deadline)
         {
@@ -84,22 +277,21 @@ public sealed class SsdpDiscoveryService
             }
 
             DiscoveredReceiver? receiver = await TryResolveReceiverFromLocationAsync(location, cancellationToken);
-            if (receiver is null)
+            if (receiver is not null && !string.IsNullOrWhiteSpace(receiver.IpAddress))
             {
-                continue;
-            }
-
-            if (!string.IsNullOrWhiteSpace(receiver.IpAddress))
-            {
-                lock (discoveredLock)
-                {
-                    discovered[receiver.IpAddress] = receiver;
-                }
+                discovered[receiver.IpAddress] = receiver;
             }
         }
     }
 
-    private async Task DiscoverViaSubnetProbeAsync(Dictionary<string, DiscoveredReceiver> discovered, object discoveredLock, DateTime deadline, CancellationToken cancellationToken)
+    // ──────────────────────────────────────────────────────────────────
+    //  Subnet brute-force HTTP probe (fallback)
+    // ──────────────────────────────────────────────────────────────────
+
+    private async Task DiscoverViaSubnetProbeAsync(
+        ConcurrentDictionary<string, DiscoveredReceiver> discovered,
+        DateTime deadline,
+        CancellationToken cancellationToken)
     {
         List<string> candidates = GetLocalSubnetCandidates();
         if (candidates.Count == 0)
@@ -107,8 +299,7 @@ public sealed class SsdpDiscoveryService
             return;
         }
 
-        using var throttle = new SemaphoreSlim(36);
-        var results = new ConcurrentDictionary<string, DiscoveredReceiver>(StringComparer.OrdinalIgnoreCase);
+        using var throttle = new SemaphoreSlim(50);
         var probeTasks = new List<Task>();
 
         foreach (string ip in candidates)
@@ -126,7 +317,7 @@ public sealed class SsdpDiscoveryService
                     DiscoveredReceiver? receiver = await TryProbeReceiverByIpAsync(ip, deadline, cancellationToken);
                     if (receiver is not null)
                     {
-                        results[ip] = receiver;
+                        discovered[ip] = receiver;
                     }
                 }
                 catch
@@ -145,15 +336,83 @@ public sealed class SsdpDiscoveryService
             Task completed = await Task.WhenAny(probeTasks);
             probeTasks.Remove(completed);
         }
+    }
 
-        foreach (var pair in results)
+    // ──────────────────────────────────────────────────────────────────
+    //  Individual IP probe
+    // ──────────────────────────────────────────────────────────────────
+
+    private async Task<DiscoveredReceiver?> TryProbeReceiverByIpAsync(
+        string ipAddress, DateTime deadline, CancellationToken cancellationToken)
+    {
+        if (DateTime.UtcNow >= deadline)
         {
-            lock (discoveredLock)
+            return null;
+        }
+
+        // Try the Marantz/Denon HTTP control endpoint first — fastest and most reliable.
+        string zoneStatusUrl = $"http://{ipAddress}/goform/formMainZone_MainZoneXml.xml";
+        try
+        {
+            string body = await Http.GetStringAsync(zoneStatusUrl, cancellationToken);
+            string lowered = body.ToLowerInvariant();
+            if (lowered.Contains("<item>") && (lowered.Contains("mastervolume") || lowered.Contains("inputfuncselect")))
             {
-                discovered[pair.Key] = pair.Value;
+                string friendlyName = ExtractGoformValue(body, "FriendlyName");
+                if (string.IsNullOrWhiteSpace(friendlyName))
+                {
+                    friendlyName = "Marantz/Denon Receiver";
+                }
+
+                string zoneName = ExtractGoformValue(body, "RenameZone");
+                string modelName = !string.IsNullOrWhiteSpace(zoneName)
+                    && !zoneName.Equals("MAIN ZONE", StringComparison.OrdinalIgnoreCase)
+                    ? zoneName.Trim()
+                    : string.Empty;
+
+                return new DiscoveredReceiver
+                {
+                    FriendlyName = friendlyName,
+                    Manufacturer = "Marantz/Denon",
+                    ModelName = modelName,
+                    IpAddress = ipAddress,
+                    Location = zoneStatusUrl
+                };
             }
         }
+        catch
+        {
+            // Not a Marantz/Denon receiver at this IP, fall through to UPnP check.
+        }
+
+        // Fallback: try common UPnP description endpoints.
+        string[] descriptionUrls =
+        [
+            $"http://{ipAddress}:60006/upnp/desc/aios_device/aios_device.xml",
+            $"http://{ipAddress}/description.xml",
+            $"http://{ipAddress}:8080/description.xml"
+        ];
+
+        foreach (string location in descriptionUrls)
+        {
+            if (DateTime.UtcNow >= deadline)
+            {
+                return null;
+            }
+
+            DiscoveredReceiver? fromDescription = await TryResolveReceiverFromLocationAsync(location, cancellationToken);
+            if (fromDescription is not null)
+            {
+                return fromDescription;
+            }
+        }
+
+        return null;
     }
+
+    // ──────────────────────────────────────────────────────────────────
+    //  Helpers
+    // ──────────────────────────────────────────────────────────────────
 
     private static List<string> GetLocalSubnetCandidates()
     {
@@ -214,62 +473,6 @@ public sealed class SsdpDiscoveryService
         return candidates.OrderBy(ip => ip).ToList();
     }
 
-    private async Task<DiscoveredReceiver?> TryProbeReceiverByIpAsync(string ipAddress, DateTime deadline, CancellationToken cancellationToken)
-    {
-        if (DateTime.UtcNow >= deadline)
-        {
-            return null;
-        }
-
-        // First, try common UPnP description endpoints.
-        string[] descriptionUrls =
-        [
-            $"http://{ipAddress}/description.xml",
-            $"http://{ipAddress}:8080/description.xml"
-        ];
-
-        foreach (string location in descriptionUrls)
-        {
-            if (DateTime.UtcNow >= deadline)
-            {
-                return null;
-            }
-
-            DiscoveredReceiver? fromDescription = await TryResolveReceiverFromLocationAsync(location, cancellationToken);
-            if (fromDescription is not null)
-            {
-                return fromDescription;
-            }
-        }
-
-        // Fallback: probe the Marantz HTTP XML endpoint used by the app.
-        string zoneStatusUrl = $"http://{ipAddress}/goform/formMainZone_MainZoneXml.xml";
-        string body;
-        try
-        {
-            body = await Http.GetStringAsync(zoneStatusUrl, cancellationToken);
-        }
-        catch
-        {
-            return null;
-        }
-
-        string lowered = body.ToLowerInvariant();
-        if (!lowered.Contains("<item>") || (!lowered.Contains("mastervolume") && !lowered.Contains("inputfuncselect")))
-        {
-            return null;
-        }
-
-        return new DiscoveredReceiver
-        {
-            FriendlyName = $"Marantz/Denon Receiver ({ipAddress})",
-            Manufacturer = "Marantz/Denon",
-            ModelName = string.Empty,
-            IpAddress = ipAddress,
-            Location = zoneStatusUrl
-        };
-    }
-
     private static Dictionary<string, string> ParseHeaders(string response)
     {
         var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -283,7 +486,8 @@ public sealed class SsdpDiscoveryService
         return headers;
     }
 
-    private static async Task<DiscoveredReceiver?> TryResolveReceiverFromLocationAsync(string location, CancellationToken cancellationToken)
+    private static async Task<DiscoveredReceiver?> TryResolveReceiverFromLocationAsync(
+        string location, CancellationToken cancellationToken)
     {
         if (!Uri.TryCreate(location, UriKind.Absolute, out Uri? uri))
         {
@@ -318,6 +522,14 @@ public sealed class SsdpDiscoveryService
             IpAddress = uri.Host,
             Location = location
         };
+    }
+
+    private static string ExtractGoformValue(string xml, string tag)
+    {
+        Match match = Regex.Match(xml,
+            $@"<{tag}>\s*<value>(?<v>.*?)</value>\s*</{tag}>",
+            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        return match.Success ? WebUtility.HtmlDecode(match.Groups["v"].Value).Trim() : string.Empty;
     }
 
     private static string ExtractXmlValue(string xml, string tag)

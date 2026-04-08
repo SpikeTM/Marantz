@@ -154,6 +154,34 @@ public sealed class MarantzReceiverClient : IDisposable
         return result;
     }
 
+    public async Task<NetAudioMenu> GetNetAudioMenuAsync(CancellationToken cancellationToken = default)
+    {
+        string xml = await _httpClient.GetStringAsync(
+            "goform/formNetAudio_StatusXml.xml?ZoneName=MAIN%20ZONE&Login=self", cancellationToken);
+
+        Dictionary<string, string> map = ParseValueMap(xml);
+
+        List<string> menuLines = [];
+        Match lineBlock = NetLineRegex.Match(xml);
+        if (lineBlock.Success)
+        {
+            menuLines = LineValueRegex.Matches(lineBlock.Groups["block"].Value)
+                .Select(m => WebUtility.HtmlDecode(m.Groups["value"].Value).Trim())
+                .Where(v => !string.IsNullOrWhiteSpace(v))
+                .ToList();
+        }
+
+        return new NetAudioMenu
+        {
+            NetFunction = GetValue(map, "NetFuncSelect", string.Empty),
+            PlaybackStatus = GetValue(map, "NetAudioStatus", string.Empty),
+            MenuLines = menuLines,
+            CursorLine = int.TryParse(GetValue(map, "CurLine", "0"), out int cl) ? cl : 0,
+            TotalLines = int.TryParse(GetValue(map, "TotalLine", "0"), out int tl) ? tl : 0,
+            ListLayer = int.TryParse(GetValue(map, "ListLayer", "0"), out int ll) ? ll : 0
+        };
+    }
+
     public async Task SendNetAudioCommandAsync(string command, CancellationToken cancellationToken = default)
     {
         Dictionary<string, string> payload = BuildCommandPayload(command);

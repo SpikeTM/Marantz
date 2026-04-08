@@ -1,0 +1,701 @@
+﻿<Window x:Class="MarantzDesktopControl.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Marantz SR5010 Desktop Control"
+        Height="920"
+        Icon="Resources/app.ico"
+        Width="1480"
+        MinHeight="840"
+        MinWidth="1280"
+        Background="#111214">
+    <Window.Resources>
+        <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#1E2025" />
+        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#4A5059" />
+        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="#3A3D42" />
+
+        <SolidColorBrush x:Key="ComboBox.Static.Background" Color="#1A1C20" />
+        <SolidColorBrush x:Key="ComboBox.Static.Border" Color="#6A6D72" />
+        <SolidColorBrush x:Key="ComboBox.Static.Glyph" Color="#E6D6B3" />
+        <SolidColorBrush x:Key="ComboBox.MouseOver.Background" Color="#23262B" />
+        <SolidColorBrush x:Key="ComboBox.MouseOver.Border" Color="#A58D62" />
+        <SolidColorBrush x:Key="ComboBox.MouseOver.Glyph" Color="#F3E7CC" />
+        <SolidColorBrush x:Key="ComboBox.Pressed.Background" Color="#2A2D31" />
+        <SolidColorBrush x:Key="ComboBox.Pressed.Border" Color="#B89C6E" />
+        <SolidColorBrush x:Key="ComboBox.Pressed.Glyph" Color="#FFF4DD" />
+        <SolidColorBrush x:Key="ComboBox.Disabled.Background" Color="#2A2C30" />
+        <SolidColorBrush x:Key="ComboBox.Disabled.Border" Color="#4F5257" />
+        <SolidColorBrush x:Key="ComboBox.Disabled.Glyph" Color="#8B8F95" />
+        <SolidColorBrush x:Key="ComboBox.Static.Editable.Background" Color="#1A1C20" />
+        <SolidColorBrush x:Key="ComboBox.Static.Editable.Border" Color="#6A6D72" />
+        <SolidColorBrush x:Key="ComboBox.Static.Editable.Button.Background" Color="#2A2D31" />
+        <SolidColorBrush x:Key="ComboBox.Static.Editable.Button.Border" Color="#6A6D72" />
+        <SolidColorBrush x:Key="ComboBox.Static.Editable.Button.Glyph" Color="#E6D6B3" />
+
+        <LinearGradientBrush x:Key="ReceiverBodyBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#3B3C3F" Offset="0" />
+            <GradientStop Color="#252628" Offset="0.45" />
+            <GradientStop Color="#191A1C" Offset="1" />
+        </LinearGradientBrush>
+
+        <LinearGradientBrush x:Key="GlassBrush" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#0B1118" Offset="0" />
+            <GradientStop Color="#010204" Offset="1" />
+        </LinearGradientBrush>
+
+        <Style TargetType="Button">
+            <Setter Property="Foreground" Value="#ECE3CF" />
+            <Setter Property="Background" Value="#2B2D30" />
+            <Setter Property="BorderBrush" Value="#5A5D60" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="10,7" />
+            <Setter Property="Margin" Value="4" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontFamily" Value="Bahnschrift" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border CornerRadius="6"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                    <GradientStop Color="#3A3D41" Offset="0" />
+                                    <GradientStop Color="#242629" Offset="1" />
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="BorderBrush" Value="#C5B189" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Opacity" Value="0.9" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#E7E0D0" />
+            <Setter Property="FontFamily" Value="Bahnschrift" />
+        </Style>
+
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#17191C" />
+            <Setter Property="Foreground" Value="#ECE3CF" />
+            <Setter Property="BorderBrush" Value="#5A5D60" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontFamily" Value="Bahnschrift" />
+            <Setter Property="Padding" Value="8,5" />
+            <Setter Property="Margin" Value="4" />
+        </Style>
+
+        <Style x:Key="ComboBoxToggleButtonStyle" TargetType="ToggleButton">
+            <Setter Property="OverridesDefaultStyle" Value="True" />
+            <Setter Property="IsTabStop" Value="False" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="ClickMode" Value="Press" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="templateRoot" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4" SnapsToDevicePixels="True">
+                            <Border x:Name="splitBorder" HorizontalAlignment="Right" Width="30" SnapsToDevicePixels="True" BorderThickness="0">
+                                <Path x:Name="arrow" Data="F1 M 0,0 L 3.5,4 L 7,0 Z"
+                                      Fill="{StaticResource ComboBox.Static.Glyph}"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="arrow" Property="Fill" Value="{StaticResource ComboBox.MouseOver.Glyph}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="arrow" Property="Fill" Value="{StaticResource ComboBox.Pressed.Glyph}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="arrow" Property="Fill" Value="{StaticResource ComboBox.Disabled.Glyph}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="#17191C" />
+            <Setter Property="Foreground" Value="#FFF7E8" />
+            <Setter Property="BorderBrush" Value="#5A5D60" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontFamily" Value="Bahnschrift" />
+            <Setter Property="Padding" Value="6,4" />
+            <Setter Property="Margin" Value="4" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto" />
+            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
+            <Setter Property="ScrollViewer.CanContentScroll" Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid x:Name="templateRoot" SnapsToDevicePixels="True">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition MinWidth="{DynamicResource {x:Static SystemParameters.VerticalScrollBarWidthKey}}" Width="0" />
+                            </Grid.ColumnDefinitions>
+                            <Popup x:Name="PART_Popup" AllowsTransparency="True" Grid.ColumnSpan="2"
+                                   IsOpen="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                   Placement="Bottom" PopupAnimation="{DynamicResource {x:Static SystemParameters.ComboBoxPopupAnimationKey}}">
+                                <Border x:Name="dropDownBorder" Background="#1E2025" BorderBrush="#5A5D60" BorderThickness="1"
+                                        MinWidth="{Binding ActualWidth, ElementName=templateRoot}"
+                                        MaxHeight="{TemplateBinding MaxDropDownHeight}" CornerRadius="4">
+                                    <ScrollViewer>
+                                        <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                            <ToggleButton x:Name="toggleButton" Grid.ColumnSpan="2"
+                                          Background="{TemplateBinding Background}"
+                                          BorderBrush="{TemplateBinding BorderBrush}"
+                                          BorderThickness="{TemplateBinding BorderThickness}"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                          Style="{StaticResource ComboBoxToggleButtonStyle}" />
+                            <ContentPresenter x:Name="contentPresenter" Grid.Column="0"
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                              Content="{TemplateBinding SelectionBoxItem}"
+                                              ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}"
+                                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              IsHitTestVisible="False"
+                                              Margin="{TemplateBinding Padding}"
+                                              SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                              TextElement.Foreground="{TemplateBinding Foreground}"
+                                              TextElement.FontFamily="{TemplateBinding FontFamily}"
+                                              TextElement.FontWeight="{TemplateBinding FontWeight}" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="toggleButton" Property="Background" Value="{StaticResource ComboBox.MouseOver.Background}" />
+                                <Setter TargetName="toggleButton" Property="BorderBrush" Value="{StaticResource ComboBox.MouseOver.Border}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="contentPresenter" Property="TextElement.Foreground" Value="#DCCFB4" />
+                                <Setter TargetName="toggleButton" Property="Background" Value="{StaticResource ComboBox.Disabled.Background}" />
+                                <Setter TargetName="toggleButton" Property="BorderBrush" Value="{StaticResource ComboBox.Disabled.Border}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Foreground" Value="#FFF7E8" />
+            <Setter Property="Background" Value="#17191D" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="FontFamily" Value="Bahnschrift" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Style.Triggers>
+                <Trigger Property="IsHighlighted" Value="True">
+                    <Setter Property="Background" Value="#4A5059" />
+                    <Setter Property="Foreground" Value="#FFFFFF" />
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#756142" />
+                    <Setter Property="Foreground" Value="#FFFFFF" />
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Foreground" Value="#C9BC9F" />
+                    <Setter Property="Opacity" Value="1" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style TargetType="ToggleButton">
+            <Setter Property="Foreground" Value="#F3E5C8" />
+            <Setter Property="Background" Value="#303338" />
+            <Setter Property="BorderBrush" Value="#6A6D72" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="10,7" />
+            <Setter Property="FontFamily" Value="Bahnschrift" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="ToggleRoot" CornerRadius="6" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="2" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="ToggleRoot" Property="Background" Value="#4F6E78" />
+                                <Setter Property="Foreground" Value="#F8F8F8" />
+                                <Setter TargetName="ToggleRoot" Property="BorderBrush" Value="#9BC6D8" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ToggleRoot" Property="BorderBrush" Value="#C1A97B" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.65" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SectionTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#CDBB96" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+
+        <Style x:Key="FaceplateLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="#A9A193" />
+            <Setter Property="TextAlignment" Value="Center" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,7,0,0" />
+        </Style>
+
+        <Style TargetType="ListBox">
+            <Setter Property="Background" Value="#17191C" />
+            <Setter Property="Foreground" Value="#FFF7E8" />
+            <Setter Property="BorderBrush" Value="#5A5D60" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontFamily" Value="Bahnschrift" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Padding" Value="2" />
+        </Style>
+
+        <Style TargetType="ListBoxItem">
+            <Setter Property="Foreground" Value="#FFF7E8" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Padding" Value="8,5" />
+            <Setter Property="FontFamily" Value="Bahnschrift" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#4A5059" />
+                    <Setter Property="Foreground" Value="#FFFFFF" />
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#756142" />
+                    <Setter Property="Foreground" Value="#FFFFFF" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.Background>
+            <RadialGradientBrush Center="0.5,0" GradientOrigin="0.5,0.1" RadiusX="1.05" RadiusY="1.1">
+                <GradientStop Color="#2A2E34" Offset="0" />
+                <GradientStop Color="#16181B" Offset="0.65" />
+                <GradientStop Color="#0B0C0E" Offset="1" />
+            </RadialGradientBrush>
+        </Grid.Background>
+
+        <Grid Margin="16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- Trial banner (hidden when fully licensed) -->
+            <Border x:Name="TrialBanner" Grid.Row="0" CornerRadius="10" Padding="10,8" Margin="0,0,0,10"
+                    Background="#2E2510" BorderBrush="#A58D62" BorderThickness="1" Visibility="Collapsed">
+                <DockPanel>
+                    <Button x:Name="BuyButton" DockPanel.Dock="Right" Content="Buy Full Version" Click="BuyButton_Click"
+                            Background="#A58D62" Foreground="#111214" FontWeight="SemiBold" Padding="14,6" Margin="12,0,0,0" />
+                    <TextBlock x:Name="TrialBannerText" VerticalAlignment="Center" Foreground="#E6D6B3"
+                               FontFamily="Bahnschrift" FontSize="13"
+                               Text="You are using a free trial." />
+                </DockPanel>
+            </Border>
+
+            <Border Grid.Row="1" CornerRadius="32" Padding="22" Background="{StaticResource ReceiverBodyBrush}" BorderBrush="#4D5054" BorderThickness="1.5">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="4,0,20,0">
+                            <Button x:Name="PowerButton" Content="P" Width="46" Height="46" FontSize="20" FontWeight="Bold" Click="PowerToggleButton_Click" />
+                            <TextBlock Text="POWER" Style="{StaticResource FaceplateLabel}" />
+                        </StackPanel>
+
+                        <Grid Grid.Column="1" Margin="0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1.15*" />
+                                <ColumnDefinition Width="1.7*" />
+                                <ColumnDefinition Width="1.15*" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <Grid x:Name="InputKnobHitArea"
+                                      Width="148"
+                                      Height="148"
+                                      Cursor="Hand"
+                                      MouseWheel="InputKnob_MouseWheel"
+                                      MouseLeftButtonDown="InputKnob_MouseLeftButtonDown"
+                                      MouseMove="InputKnob_MouseMove"
+                                      MouseLeftButtonUp="InputKnob_MouseLeftButtonUp"
+                                      MouseLeave="InputKnob_MouseLeave">
+                                    <Ellipse Width="142" Height="142" Stroke="#7A7E83" StrokeThickness="1.3">
+                                        <Ellipse.Fill>
+                                            <RadialGradientBrush GradientOrigin="0.36,0.32" Center="0.5,0.5" RadiusX="0.62" RadiusY="0.62">
+                                                <GradientStop Color="#4A4C50" Offset="0" />
+                                                <GradientStop Color="#2A2C2F" Offset="0.55" />
+                                                <GradientStop Color="#1C1E20" Offset="1" />
+                                            </RadialGradientBrush>
+                                        </Ellipse.Fill>
+                                        <Ellipse.Effect>
+                                            <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.35" />
+                                        </Ellipse.Effect>
+                                        <Ellipse.RenderTransform>
+                                            <RotateTransform x:Name="InputKnobRotate" CenterX="71" CenterY="71" />
+                                        </Ellipse.RenderTransform>
+                                    </Ellipse>
+                                    <Canvas Width="142" Height="142" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
+                                        <Canvas.RenderTransform>
+                                            <RotateTransform x:Name="InputKnobIndicatorRotate" CenterX="71" CenterY="71" />
+                                        </Canvas.RenderTransform>
+                                        <Line X1="71" Y1="71" X2="71" Y2="20" Stroke="#D4C39F" StrokeThickness="3.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                    </Canvas>
+                                    <Ellipse Width="22" Height="22" Fill="#1B1D20" Stroke="#7A7E83" StrokeThickness="1" />
+                                </Grid>
+                                <TextBlock Text="INPUT" Style="{StaticResource FaceplateLabel}" />
+                            </StackPanel>
+
+                            <Border Grid.Column="1" Width="260" Height="160" HorizontalAlignment="Center" VerticalAlignment="Center" CornerRadius="80" BorderBrush="#8E8A80" BorderThickness="1.2" Padding="14" Background="{StaticResource GlassBrush}">
+                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                    <TextBlock Text="AVR" FontFamily="Georgia" FontSize="35" FontWeight="Bold" Foreground="#D8C6A2" HorizontalAlignment="Center" Margin="0,-5,0,6" />
+                                    <TextBlock x:Name="InputText" Text="Unknown" FontSize="20" HorizontalAlignment="Center" Foreground="#F5F2E9" />
+                                    <TextBlock x:Name="VolumeText" Text="Unknown" FontSize="24" FontWeight="SemiBold" HorizontalAlignment="Center" Foreground="#EFE8D6" />
+                                    <TextBlock x:Name="ZoneText" Text="MAIN ZONE" FontSize="11" Foreground="#A8B1B9" HorizontalAlignment="Center" />
+                                </StackPanel>
+                            </Border>
+
+                            <StackPanel Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <Grid x:Name="VolumeKnobHitArea"
+                                      Width="148"
+                                      Height="148"
+                                      Cursor="Hand"
+                                      MouseWheel="VolumeKnob_MouseWheel"
+                                      MouseLeftButtonDown="VolumeKnob_MouseLeftButtonDown"
+                                      MouseMove="VolumeKnob_MouseMove"
+                                      MouseLeftButtonUp="VolumeKnob_MouseLeftButtonUp"
+                                      MouseLeave="VolumeKnob_MouseLeave">
+                                    <Ellipse Width="142" Height="142" Stroke="#7A7E83" StrokeThickness="1.3">
+                                        <Ellipse.Fill>
+                                            <RadialGradientBrush GradientOrigin="0.36,0.32" Center="0.5,0.5" RadiusX="0.62" RadiusY="0.62">
+                                                <GradientStop Color="#4A4C50" Offset="0" />
+                                                <GradientStop Color="#2A2C2F" Offset="0.55" />
+                                                <GradientStop Color="#1C1E20" Offset="1" />
+                                            </RadialGradientBrush>
+                                        </Ellipse.Fill>
+                                        <Ellipse.Effect>
+                                            <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.35" />
+                                        </Ellipse.Effect>
+                                        <Ellipse.RenderTransform>
+                                            <RotateTransform x:Name="VolumeKnobRotate" CenterX="71" CenterY="71" />
+                                        </Ellipse.RenderTransform>
+                                    </Ellipse>
+                                    <Canvas Width="142" Height="142" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
+                                        <Canvas.RenderTransform>
+                                            <RotateTransform x:Name="VolumeKnobIndicatorRotate" CenterX="71" CenterY="71" />
+                                        </Canvas.RenderTransform>
+                                        <Line X1="71" Y1="71" X2="71" Y2="20" Stroke="#D4C39F" StrokeThickness="3.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                    </Canvas>
+                                    <Ellipse Width="22" Height="22" Fill="#1B1D20" Stroke="#7A7E83" StrokeThickness="1" />
+                                </Grid>
+                                <TextBlock Text="VOLUME" Style="{StaticResource FaceplateLabel}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <StackPanel Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="20,0,4,0">
+                            <Border Width="46" Height="46" CornerRadius="23" BorderBrush="#7A7E83" BorderThickness="1.3" Background="#181A1D" />
+                            <TextBlock Text="PHONES" Style="{StaticResource FaceplateLabel}" />
+                        </StackPanel>
+                    </Grid>
+
+                    <Border Grid.Row="1" CornerRadius="16" Padding="8" Background="#1B1C1E" BorderBrush="#505357" BorderThickness="1">
+                        <WrapPanel HorizontalAlignment="Center">
+                            <TextBlock Text="Power" Margin="8,4" Foreground="#D1C1A3" />
+                            <TextBlock x:Name="PowerText" Text="Unknown" Margin="0,4,20,4" Foreground="#EEE5D5" />
+                            <TextBlock Text="Now Playing" Margin="8,4" Foreground="#D1C1A3" />
+                            <TextBlock x:Name="NowPlayingText" Text="No active stream" Width="360" TextTrimming="CharacterEllipsis" Margin="0,4,20,4" Foreground="#EEE5D5" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" />
+                            <TextBlock Text="Zone2" Margin="8,4" Foreground="#D1C1A3" />
+                            <TextBlock x:Name="Zone2StatusText" Text="Zone2 status unknown" Width="330" TextTrimming="CharacterEllipsis" Margin="0,4,20,4" Foreground="#EEE5D5" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" />
+                            <TextBlock Text="Status" Margin="8,4" Foreground="#D1C1A3" />
+                            <TextBlock x:Name="LastStatusText" Text="Ready." Width="400" TextTrimming="CharacterEllipsis" Margin="0,4" Foreground="#EEE5D5" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" />
+                        </WrapPanel>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="2" Margin="0,14,0,0" CornerRadius="14" Background="#17191C" BorderBrush="#4F5256" BorderThickness="1" Padding="12">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Border Grid.Row="0" Background="#202327" CornerRadius="10" BorderBrush="#4D5155" BorderThickness="1" Padding="10" Margin="0,0,0,10">
+                            <WrapPanel VerticalAlignment="Center">
+                                <TextBlock Text="Profile" VerticalAlignment="Center" Margin="6,0,8,0" />
+                                <ComboBox x:Name="ProfileComboBox" Width="220" SelectionChanged="ProfileComboBox_SelectionChanged" DisplayMemberPath="Name" />
+                                <Button Content="New Profile" Width="116" Click="NewProfileButton_Click" />
+                                <Button Content="Save Profile" Width="116" Click="SaveProfileButton_Click" />
+                                <Button Content="Delete Profile" Width="116" Click="DeleteProfileButton_Click" />
+                            </WrapPanel>
+                        </Border>
+
+                        <Border Grid.Row="1" Background="#202327" CornerRadius="10" BorderBrush="#4D5155" BorderThickness="1" Padding="10" Margin="0,0,0,10">
+                            <WrapPanel VerticalAlignment="Center">
+                                <TextBlock Text="Receiver IP" VerticalAlignment="Center" Margin="6,0,8,0" />
+                                <TextBox x:Name="ReceiverIpTextBox" Width="170" Text="192.168.1.40" VerticalContentAlignment="Center" />
+                                <TextBlock Text="Main Zone" VerticalAlignment="Center" Margin="8,0,6,0" />
+                                <TextBox x:Name="MainZoneNameTextBox" Width="110" Text="MAIN ZONE" VerticalContentAlignment="Center" />
+                                <TextBlock Text="Zone2" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                <TextBox x:Name="Zone2NameTextBox" Width="90" Text="ZONE2" VerticalContentAlignment="Center" />
+                                <Button x:Name="ConnectButton" Content="Connect" Width="100" Click="ConnectButton_Click" />
+                                <Button x:Name="RefreshButton" Content="Refresh" Width="100" Click="RefreshButton_Click" />
+                                <Button x:Name="DiscoverButton" Content="Discover" Width="100" Click="DiscoverButton_Click" />
+                                <Button x:Name="ScanNetworkButton" Content="Scan Network" Width="124" Click="ScanNetworkButton_Click" />
+                                <ComboBox x:Name="DiscoveredReceiverComboBox" Width="280" DisplayMemberPath="DisplayName" />
+                                <Button x:Name="UseReceiverButton" Content="Use Selected" Width="116" Click="UseDiscoveredReceiverButton_Click" />
+                                <ToggleButton x:Name="AutoRefreshToggle" Content="Auto Refresh" IsChecked="True" Width="122" Margin="4" Checked="AutoRefreshToggle_Changed" Unchecked="AutoRefreshToggle_Changed" Foreground="#ECE3CF" Background="#2B2D30" BorderBrush="#5A5D60" BorderThickness="1" />
+                            </WrapPanel>
+                        </Border>
+
+                        <Grid Grid.Row="2" Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0" Background="#202327" BorderBrush="#4D5155" BorderThickness="1" CornerRadius="10" Padding="10" Margin="0,0,8,0">
+                                <StackPanel>
+                                    <TextBlock Text="Main Remote" Style="{StaticResource SectionTitle}" />
+                                    <WrapPanel>
+                                        <Button Content="Power On" Click="PowerOnButton_Click" />
+                                        <Button Content="Power Off" Click="PowerOffButton_Click" />
+                                        <Button Content="Mute" Click="MuteButton_Click" />
+                                    </WrapPanel>
+                                    <WrapPanel>
+                                        <Button Content="Vol -" Width="92" Click="VolDownButton_Click" />
+                                        <Button Content="Vol +" Width="92" Click="VolUpButton_Click" />
+                                    </WrapPanel>
+
+                                    <TextBlock Text="Sound Mode" Style="{StaticResource SectionTitle}" Margin="0,10,0,8" />
+                                    <WrapPanel>
+                                        <Button Content="Movie" Tag="MOVIE" Click="SurroundButton_Click" />
+                                        <Button Content="Music" Tag="MUSIC" Click="SurroundButton_Click" />
+                                        <Button Content="Game" Tag="GAME" Click="SurroundButton_Click" />
+                                        <Button Content="Pure" Tag="PURE DIRECT" Click="SurroundButton_Click" />
+                                    </WrapPanel>
+
+                                    <TextBlock Text="Quick Select" Style="{StaticResource SectionTitle}" Margin="0,10,0,8" />
+                                    <WrapPanel>
+                                        <Button Content="QS 1" Tag="1" Click="QuickSelectButton_Click" />
+                                        <Button Content="QS 2" Tag="2" Click="QuickSelectButton_Click" />
+                                        <Button Content="QS 3" Tag="3" Click="QuickSelectButton_Click" />
+                                        <Button Content="QS 4" Tag="4" Click="QuickSelectButton_Click" />
+                                    </WrapPanel>
+
+                                    <TextBlock Text="Energy &amp; Sleep" Style="{StaticResource SectionTitle}" Margin="0,10,0,8" />
+                                    <WrapPanel>
+                                        <Button Content="Eco On" Tag="ON" Click="EcoButton_Click" />
+                                        <Button Content="Eco Off" Tag="OFF" Click="EcoButton_Click" />
+                                        <Button Content="Eco Auto" Tag="AUTO" Click="EcoButton_Click" />
+                                    </WrapPanel>
+                                    <WrapPanel>
+                                        <Button Content="Sleep Off" Tag="OFF" Click="SleepButton_Click" />
+                                        <Button Content="Sleep 30" Tag="30" Click="SleepButton_Click" />
+                                        <Button Content="Sleep 60" Tag="60" Click="SleepButton_Click" />
+                                        <Button Content="Sleep 90" Tag="90" Click="SleepButton_Click" />
+                                    </WrapPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="1" Background="#202327" BorderBrush="#4D5155" BorderThickness="1" CornerRadius="10" Padding="10" Margin="0,0,8,0">
+                                <StackPanel>
+                                    <TextBlock Text="Source Selection" Style="{StaticResource SectionTitle}" />
+                                    <UniformGrid Columns="2" Rows="6">
+                                        <Button Content="TV Audio" Tag="TV AUDIO" Click="SourceButton_Click" />
+                                        <Button Content="Blu-ray" Tag="BD" Click="SourceButton_Click" />
+                                        <Button Content="CBL/SAT" Tag="SAT/CBL" Click="SourceButton_Click" />
+                                        <Button Content="Media Player" Tag="MPLAY" Click="SourceButton_Click" />
+                                        <Button Content="Game" Tag="GAME" Click="SourceButton_Click" />
+                                        <Button Content="AUX1" Tag="AUX1" Click="SourceButton_Click" />
+                                        <Button Content="Bluetooth" Tag="BT" Click="SourceButton_Click" />
+                                        <Button Content="Online Music" Tag="NET" Click="SourceButton_Click" />
+                                        <Button Content="Tuner" Tag="TUNER" Click="SourceButton_Click" />
+                                        <Button Content="iPod/USB" Tag="USB/IPOD" Click="SourceButton_Click" />
+                                        <Button Content="CD" Tag="CD" Click="SourceButton_Click" />
+                                        <Button Content="Phono" Tag="PHONO" Click="SourceButton_Click" />
+                                    </UniformGrid>
+
+                                    <TextBlock Text="Discovered Sources" Style="{StaticResource SectionTitle}" Margin="0,14,0,8" />
+                                    <ComboBox x:Name="DiscoveredSourceComboBox" MinWidth="220" DisplayMemberPath="Label" Margin="0,0,0,6" />
+                                    <WrapPanel>
+                                        <Button Content="Set Main Source" Click="ApplyDiscoveredMainSource_Click" />
+                                        <Button Content="Set Zone2 Source" Click="ApplyDiscoveredZone2Source_Click" />
+                                    </WrapPanel>
+
+                                    <TextBlock Text="Discovered Network Presets" Style="{StaticResource SectionTitle}" Margin="0,14,0,8" />
+                                    <ComboBox x:Name="DiscoveredPresetComboBox" MinWidth="220" DisplayMemberPath="Label" Margin="0,0,0,6" />
+                                    <Button Content="Open Network Preset" Click="ApplyDiscoveredPreset_Click" Width="172" />
+
+                                    <TextBlock Text="Zone Tools" Style="{StaticResource SectionTitle}" Margin="0,14,0,8" />
+                                    <WrapPanel>
+                                        <Button Content="All Zone Stereo On" Click="AllZoneStereoOn_Click" />
+                                        <Button Content="All Zone Stereo Off" Click="AllZoneStereoOff_Click" />
+                                    </WrapPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="2" Background="#202327" BorderBrush="#4D5155" BorderThickness="1" CornerRadius="10" Padding="10" Margin="0,0,8,0">
+                                <StackPanel>
+                                    <TextBlock Text="Network Audio" Style="{StaticResource SectionTitle}" />
+                                    <WrapPanel>
+                                        <Button Content="Online Music" Click="OpenNetButton_Click" />
+                                        <Button Content="Favorites" Tag="FAVORITES" Click="NetTopButton_Click" />
+                                        <Button Content="Internet Radio" Tag="IRADIO" Click="NetTopButton_Click" />
+                                        <Button Content="Media Server" Tag="SERVER" Click="NetTopButton_Click" />
+                                    </WrapPanel>
+
+                                    <Grid Margin="0,12,0,4">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <Button Grid.Row="0" Grid.Column="1" Content="Up" Tag="CurUp" Click="NetCommandButton_Click" Width="90" />
+                                        <Button Grid.Row="1" Grid.Column="0" Content="Left" Tag="CurLeft" Click="NetCommandButton_Click" Width="90" />
+                                        <Button Grid.Row="1" Grid.Column="1" Content="Enter" Tag="CurEnter" Click="NetCommandButton_Click" Width="90" />
+                                        <Button Grid.Row="1" Grid.Column="2" Content="Right" Tag="CurRight" Click="NetCommandButton_Click" Width="90" />
+                                        <Button Grid.Row="2" Grid.Column="1" Content="Down" Tag="CurDown" Click="NetCommandButton_Click" Width="90" />
+                                    </Grid>
+
+                                    <WrapPanel>
+                                        <Button Content="Back" Tag="CurLeft" Click="NetCommandButton_Click" />
+                                        <Button Content="Page Up" Tag="PageUp" Click="NetCommandButton_Click" />
+                                        <Button Content="Page Down" Tag="PageDown" Click="NetCommandButton_Click" />
+                                    </WrapPanel>
+
+                                    <TextBlock Text="Transport" Style="{StaticResource SectionTitle}" Margin="0,12,0,8" />
+                                    <WrapPanel>
+                                        <Button Content="Play" Tag="Play" Click="NetCommandButton_Click" />
+                                        <Button Content="Pause" Tag="Pause" Click="NetCommandButton_Click" />
+                                        <Button Content="Stop" Tag="Stop" Click="NetCommandButton_Click" />
+                                        <Button Content="Previous" Tag="TrackPrevious" Click="NetCommandButton_Click" />
+                                        <Button Content="Next" Tag="TrackNext" Click="NetCommandButton_Click" />
+                                    </WrapPanel>
+                                    <WrapPanel>
+                                        <Button Content="Repeat" Tag="Repeat" Click="NetCommandButton_Click" />
+                                        <Button Content="Random" Tag="Random" Click="NetCommandButton_Click" />
+                                    </WrapPanel>
+
+                                    <TextBlock Text="Pandora" Style="{StaticResource SectionTitle}" Margin="0,12,0,8" />
+                                    <WrapPanel>
+                                        <Button Content="Open Pandora" Click="OpenPandora_Click" />
+                                        <Button Content="Refresh List" Click="RefreshPandoraList_Click" />
+                                        <Button Content="Back" Click="PandoraBack_Click" />
+                                    </WrapPanel>
+                                    <ListBox x:Name="PandoraStationListBox" Height="160" Margin="0,4"
+                                             MouseDoubleClick="PandoraStationListBox_DoubleClick" />
+                                    <WrapPanel>
+                                        <Button Content="Play Station" Click="PlayPandoraStation_Click" />
+                                        <Button Content="Thumb Up" Click="PandoraThumbUp_Click" />
+                                        <Button Content="Thumb Down" Click="PandoraThumbDown_Click" />
+                                        <Button Content="Skip" Click="PandoraSkip_Click" />
+                                    </WrapPanel>
+                                    <WrapPanel>
+                                        <Button Content="Page Up" Click="PandoraPageUp_Click" />
+                                        <Button Content="Page Down" Click="PandoraPageDown_Click" />
+                                    </WrapPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="3" Background="#202327" BorderBrush="#4D5155" BorderThickness="1" CornerRadius="10" Padding="10">
+                                <StackPanel>
+                                    <TextBlock Text="Zone2" Style="{StaticResource SectionTitle}" />
+                                    <WrapPanel>
+                                        <Button Content="Zone2 On" Click="Zone2OnButton_Click" />
+                                        <Button Content="Zone2 Off" Click="Zone2OffButton_Click" />
+                                        <Button Content="Zone2 Mute" Click="Zone2MuteButton_Click" />
+                                    </WrapPanel>
+                                    <WrapPanel>
+                                        <Button Content="Zone2 Vol -" Click="Zone2VolDownButton_Click" />
+                                        <Button Content="Zone2 Vol +" Click="Zone2VolUpButton_Click" />
+                                    </WrapPanel>
+
+                                    <TextBlock Text="Zone2 Quick Select" Style="{StaticResource SectionTitle}" Margin="0,12,0,8" />
+                                    <WrapPanel>
+                                        <Button Content="Z2 QS 1" Tag="1" Click="Zone2QuickSelectButton_Click" />
+                                        <Button Content="Z2 QS 2" Tag="2" Click="Zone2QuickSelectButton_Click" />
+                                        <Button Content="Z2 QS 3" Tag="3" Click="Zone2QuickSelectButton_Click" />
+                                        <Button Content="Z2 QS 4" Tag="4" Click="Zone2QuickSelectButton_Click" />
+                                    </WrapPanel>
+
+                                    <TextBlock Text="Zone2 Sleep" Style="{StaticResource SectionTitle}" Margin="0,12,0,8" />
+                                    <WrapPanel>
+                                        <Button Content="Off" Tag="OFF" Click="Zone2SleepButton_Click" />
+                                        <Button Content="30" Tag="30" Click="Zone2SleepButton_Click" />
+                                        <Button Content="60" Tag="60" Click="Zone2SleepButton_Click" />
+                                        <Button Content="90" Tag="90" Click="Zone2SleepButton_Click" />
+                                    </WrapPanel>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <Border Grid.Row="3" Background="#202327" BorderBrush="#4D5155" BorderThickness="1" CornerRadius="10" Padding="10">
+                            <WrapPanel>
+                                <TextBlock Text="Faceplate summary" Foreground="#D1C1A3" Margin="4,4,8,4" />
+                                <TextBlock Text="Input:" Margin="0,4,4,4" />
+                                <TextBlock Text="{Binding Text, ElementName=InputText}" Foreground="#F0E7D6" Margin="0,4,16,4" />
+                                <TextBlock Text="Volume:" Margin="0,4,4,4" />
+                                <TextBlock Text="{Binding Text, ElementName=VolumeText}" Foreground="#F0E7D6" Margin="0,4,16,4" />
+                                <TextBlock Text="Power:" Margin="0,4,4,4" />
+                                <TextBlock Text="{Binding Text, ElementName=PowerText}" Foreground="#F0E7D6" Margin="0,4,16,4" />
+                                <Button Content="Power Off" Click="PowerOffButton_Click" Width="110" />
+                            </WrapPanel>
+                        </Border>
+                    </Grid>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>

@@ -1,0 +1,1026 @@
+﻿using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
+using System.Windows.Threading;
+using MarantzDesktopControl.Models;
+using MarantzDesktopControl.Services;
+
+namespace MarantzDesktopControl;
+
+/// <summary>
+/// Interaction logic for MainWindow.xaml
+/// </summary>
+public partial class MainWindow : Window
+{
+    private readonly DispatcherTimer _pollTimer;
+    private readonly DispatcherTimer _knobCommandTimer;
+    private readonly DispatcherTimer _knobRefreshTimer;
+    private readonly ProfileStore _profileStore;
+    private readonly SsdpDiscoveryService _ssdpDiscoveryService;
+    private readonly List<ReceiverProfile> _profiles;
+    private readonly List<CommandOption> _defaultInputOptions =
+    [
+        new() { Label = "TV Audio", Code = "TV AUDIO" },
+        new() { Label = "Blu-ray", Code = "BD" },
+        new() { Label = "CBL/SAT", Code = "SAT/CBL" },
+        new() { Label = "Media Player", Code = "MPLAY" },
+        new() { Label = "Game", Code = "GAME" },
+        new() { Label = "AUX1", Code = "AUX1" },
+        new() { Label = "Bluetooth", Code = "BT" },
+        new() { Label = "Online Music", Code = "NET" },
+        new() { Label = "Tuner", Code = "TUNER" },
+        new() { Label = "iPod/USB", Code = "USB/IPOD" },
+        new() { Label = "CD", Code = "CD" },
+        new() { Label = "Phono", Code = "PHONO" }
+    ];
+    private MarantzReceiverClient? _client;
+    private bool _isBootstrapping;
+    private bool _isVolumeKnobDragging;
+    private bool _isInputKnobDragging;
+    private double _lastVolumeKnobDragAngle;
+    private double _lastInputKnobDragAngle;
+    private double _volumeKnobAngle;
+    private double _inputKnobAngle;
+    private double _volumeKnobDragAccumulator;
+    private double _inputKnobDragAccumulator;
+    private int _pendingVolumeSteps;
+    private readonly Queue<CommandOption> _pendingInputCommands = new();
+    private bool _knobTickInProgress;
+    private int _currentInputIndex = -1;
+
+    public MainWindow()
+    {
+        _isBootstrapping = true;
+        _profileStore = new ProfileStore();
+        _ssdpDiscoveryService = new SsdpDiscoveryService();
+        _profiles = new List<ReceiverProfile>();
+
+        _pollTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(2)
+        };
+        _pollTimer.Tick += PollTimer_Tick;
+
+        _knobCommandTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(90)
+        };
+        _knobCommandTimer.Tick += KnobCommandTimer_Tick;
+
+        _knobRefreshTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(420)
+        };
+        _knobRefreshTimer.Tick += KnobRefreshTimer_Tick;
+
+        InitializeComponent();
+
+        if (AutoRefreshToggle.IsChecked == true)
+        {
+            _pollTimer.Start();
+        }
+
+        UpdateKnobVisuals(animate: false);
+        Loaded += MainWindow_Loaded;
+        _isBootstrapping = false;
+    }
+
+    private async void KnobCommandTimer_Tick(object? sender, EventArgs e)
+    {
+        if (_knobTickInProgress)
+        {
+            return;
+        }
+
+        if (_pendingVolumeSteps == 0 && _pendingInputCommands.Count == 0)
+        {
+            _knobCommandTimer.Stop();
+            return;
+        }
+
+        _knobTickInProgress = true;
+        try
+        {
+            if (_pendingVolumeSteps != 0)
+            {
+                int direction = Math.Sign(_pendingVolumeSteps);
+                _pendingVolumeSteps -= direction;
+                await StepVolumeKnobAsync(direction);
+            }
+
+            if (_pendingInputCommands.Count > 0)
+            {
+                CommandOption command = _pendingInputCommands.Dequeue();
+                await SendMainCommandNoRefreshAsync($"PutZone_InputFunction/{command.Code}", $"Source set to {command.Label}.");
+            }
+        }
+        finally
+        {
+            _knobTickInProgress = false;
+        }
+    }
+
+    private async void KnobRefreshTimer_Tick(object? sender, EventArgs e)
+    {
+        if (_pendingVolumeSteps != 0 || _pendingInputCommands.Count != 0)
+        {
+            return;
+        }
+
+        _knobRefreshTimer.Stop();
+        await RefreshStatusAsync(showSuccessMessage: false);
+    }
+
+    private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
+    {
+        await InitializeLicenseAsync();
+        await LoadProfilesAsync();
+    }
+
+    private async Task InitializeLicenseAsync()
+    {
+        await App.License.InitializeAsync();
+        UpdateTrialBanner();
+    }
+
+    private void UpdateTrialBanner()
+    {
+        if (!App.License.IsTrial)
+        {
+            TrialBanner.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        TrialBanner.Visibility = Visibility.Visible;
+        TrialBannerText.Text = App.License.TrialRemainingDays > 0
+            ? $"You are using a free trial — {App.License.TrialRemainingDays} day(s) remaining."
+            : "You are using a free trial.";
+    }
+
+    private async void BuyButton_Click(object sender, RoutedEventArgs e)
+    {
+        BuyButton.IsEnabled = false;
+        try
+        {
+            await App.License.PromptPurchaseAsync();
+            UpdateTrialBanner();
+
+            if (!App.License.IsTrial)
+            {
+                LastStatusText.Text = "Thank you for purchasing!";
+            }
+        }
+        finally
+        {
+            BuyButton.IsEnabled = true;
+        }
+    }
+
+    private async void ConnectButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            _client = new MarantzReceiverClient(ReceiverIpTextBox.Text.Trim());
+            LastStatusText.Text = "Connected. Loading status...";
+            await RefreshStatusAsync();
+            await DiscoverOptionsAsync();
+        }
+        catch (Exception ex)
+        {
+            LastStatusText.Text = $"Connect failed: {ex.Message}";
+        }
+    }
+
+    private async void RefreshButton_Click(object sender, RoutedEventArgs e)
+    {
+        await RefreshStatusAsync();
+    }
+
+    private async void DiscoverButton_Click(object sender, RoutedEventArgs e)
+    {
+        await DiscoverOptionsAsync();
+    }
+
+    private async void ScanNetworkButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            LastStatusText.Text = "Scanning local network for Marantz/Denon receivers...";
+            ScanNetworkButton.IsEnabled = false;
+            IReadOnlyList<DiscoveredReceiver> receivers = await _ssdpDiscoveryService.DiscoverMarantzReceiversAsync(TimeSpan.FromSeconds(6));
+            DiscoveredReceiverComboBox.ItemsSource = receivers;
+
+            if (receivers.Count == 0)
+            {
+                LastStatusText.Text = "No compatible receivers discovered. Check network/firewall settings.";
+                return;
+            }
+
+            DiscoveredReceiverComboBox.SelectedIndex = 0;
+            LastStatusText.Text = $"Discovered {receivers.Count} receiver(s).";
+        }
+        catch (Exception ex)
+        {
+            LastStatusText.Text = $"Network scan failed: {ex.Message}";
+        }
+        finally
+        {
+            ScanNetworkButton.IsEnabled = true;
+        }
+    }
+
+    private void UseDiscoveredReceiverButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (DiscoveredReceiverComboBox.SelectedItem is not DiscoveredReceiver receiver)
+        {
+            LastStatusText.Text = "Select a discovered receiver first.";
+            return;
+        }
+
+        ReceiverIpTextBox.Text = receiver.IpAddress;
+        LastStatusText.Text = $"Selected {receiver.DisplayName}. Click Connect to use it.";
+    }
+
+    private void AutoRefreshToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_isBootstrapping)
+        {
+            return;
+        }
+
+        if (AutoRefreshToggle.IsChecked == true)
+        {
+            _pollTimer.Start();
+            return;
+        }
+
+        _pollTimer.Stop();
+    }
+
+    private async void PollTimer_Tick(object? sender, EventArgs e)
+    {
+        if (AutoRefreshToggle.IsChecked != true)
+        {
+            return;
+        }
+
+        await RefreshStatusAsync(showSuccessMessage: false);
+    }
+
+    private async Task RefreshStatusAsync(bool showSuccessMessage = true)
+    {
+        if (_client is null)
+        {
+            LastStatusText.Text = "Enter receiver IP and click Connect.";
+            return;
+        }
+
+        try
+        {
+            MainZoneStatus main = await _client.GetZoneStatusAsync(MainZoneNameTextBox.Text.Trim());
+            MainZoneStatus zone2 = await _client.GetZoneStatusAsync(Zone2NameTextBox.Text.Trim());
+            NetAudioStatus net = await _client.GetNetAudioStatusAsync();
+            RenderStatus(main, zone2, net);
+
+            if (showSuccessMessage)
+            {
+                LastStatusText.Text = "Status updated.";
+            }
+        }
+        catch (Exception ex)
+        {
+            LastStatusText.Text = $"Refresh failed: {ex.Message}";
+        }
+    }
+
+    private void RenderStatus(MainZoneStatus main, MainZoneStatus zone2, NetAudioStatus net)
+    {
+        ZoneText.Text = string.IsNullOrWhiteSpace(main.ZoneName) ? "MAIN ZONE" : main.ZoneName;
+        PowerText.Text = main.ZonePower;
+        InputText.Text = main.InputSource;
+        VolumeText.Text = $"{main.Volume} | Mute: {main.MuteState}";
+        Zone2StatusText.Text = $"{zone2.ZoneName} | {zone2.ZonePower} | {zone2.InputSource} | Vol {zone2.Volume} | Mute: {zone2.MuteState}";
+        NowPlayingText.Text = string.IsNullOrWhiteSpace(net.NowPlaying)
+            ? "No active stream"
+            : net.NowPlaying;
+
+        SyncInputKnobToStatus(main.InputSource);
+        SyncVolumeKnobToStatus(main.Volume);
+        UpdateKnobVisuals(animate: true);
+    }
+
+    private static void AnimateKnobAngle(RotateTransform? transform, double angle, bool animate)
+    {
+        if (transform is null)
+        {
+            return;
+        }
+
+        if (!animate)
+        {
+            transform.Angle = angle;
+            return;
+        }
+
+        var easing = new CubicEase { EasingMode = EasingMode.EaseOut };
+        var animation = new DoubleAnimation
+        {
+            To = angle,
+            Duration = TimeSpan.FromMilliseconds(95),
+            EasingFunction = easing
+        };
+        transform.BeginAnimation(RotateTransform.AngleProperty, animation);
+    }
+
+    private void UpdateKnobVisuals(bool animate)
+    {
+        AnimateKnobAngle(InputKnobRotate, _inputKnobAngle, animate);
+        AnimateKnobAngle(InputKnobIndicatorRotate, _inputKnobAngle, animate);
+        AnimateKnobAngle(VolumeKnobRotate, _volumeKnobAngle, animate);
+        AnimateKnobAngle(VolumeKnobIndicatorRotate, _volumeKnobAngle, animate);
+    }
+
+    private static string NormalizeSourceName(string value)
+    {
+        return new string(value
+            .ToUpperInvariant()
+            .Where(char.IsLetterOrDigit)
+            .ToArray());
+    }
+
+    private int FindInputIndex(string sourceName)
+    {
+        if (string.IsNullOrWhiteSpace(sourceName))
+        {
+            return -1;
+        }
+
+        string normalized = NormalizeSourceName(sourceName);
+        List<CommandOption> options = GetInputOptions();
+
+        for (int i = 0; i < options.Count; i++)
+        {
+            string code = NormalizeSourceName(options[i].Code ?? string.Empty);
+            string label = NormalizeSourceName(options[i].Label ?? string.Empty);
+
+            if (normalized == code || normalized == label || normalized.Contains(code) || normalized.Contains(label))
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    private List<CommandOption> GetInputOptions()
+    {
+        if (DiscoveredSourceComboBox.ItemsSource is IEnumerable<CommandOption> discovered)
+        {
+            List<CommandOption> values = discovered
+                .Where(s => !string.IsNullOrWhiteSpace(s.Code))
+                .ToList();
+
+            if (values.Count > 0)
+            {
+                return values;
+            }
+        }
+
+        return _defaultInputOptions;
+    }
+
+    private static double MapInputIndexToAngle(int index, int count)
+    {
+        if (count <= 1)
+        {
+            return 0;
+        }
+
+        double ratio = (double)index / (count - 1);
+        return -140 + (ratio * 280);
+    }
+
+    private void SyncInputKnobToStatus(string inputSource)
+    {
+        int index = FindInputIndex(inputSource);
+        List<CommandOption> options = GetInputOptions();
+
+        if (index >= 0)
+        {
+            _currentInputIndex = index;
+            _inputKnobAngle = MapInputIndexToAngle(index, options.Count);
+        }
+    }
+
+    private void SyncVolumeKnobToStatus(string volume)
+    {
+        if (!double.TryParse(volume, out double numericVolume))
+        {
+            return;
+        }
+
+        double clamped = Math.Clamp(numericVolume, -80, 18);
+        double ratio = (clamped + 80) / 98;
+        _volumeKnobAngle = -140 + (ratio * 280);
+    }
+
+    private static double GetKnobAngle(Point point, FrameworkElement element)
+    {
+        double centerX = element.ActualWidth / 2.0;
+        double centerY = element.ActualHeight / 2.0;
+        return Math.Atan2(point.Y - centerY, point.X - centerX) * 180.0 / Math.PI;
+    }
+
+    private static double NormalizeAngleDelta(double delta)
+    {
+        while (delta > 180)
+        {
+            delta -= 360;
+        }
+
+        while (delta < -180)
+        {
+            delta += 360;
+        }
+
+        return delta;
+    }
+
+    private void ScheduleKnobRefresh()
+    {
+        _knobRefreshTimer.Stop();
+        _knobRefreshTimer.Start();
+    }
+
+    private async Task SendMainCommandNoRefreshAsync(string command, string successMessage)
+    {
+        if (_client is null)
+        {
+            LastStatusText.Text = "Connect first.";
+            return;
+        }
+
+        try
+        {
+            await _client.SendZoneCommandAsync(MainZoneNameTextBox.Text.Trim(), command);
+            LastStatusText.Text = successMessage;
+            ScheduleKnobRefresh();
+        }
+        catch (Exception ex)
+        {
+            LastStatusText.Text = $"Command failed: {ex.Message}";
+        }
+    }
+
+    private void QueueVolumeStep(int direction)
+    {
+        if (direction == 0)
+        {
+            return;
+        }
+
+        _pendingVolumeSteps = Math.Clamp(_pendingVolumeSteps + direction, -64, 64);
+        _volumeKnobAngle = Math.Clamp(_volumeKnobAngle + (direction * 8), -150, 150);
+        UpdateKnobVisuals(animate: true);
+
+        if (!_knobCommandTimer.IsEnabled)
+        {
+            _knobCommandTimer.Start();
+        }
+    }
+
+    private void QueueInputStep(int direction)
+    {
+        if (direction == 0)
+        {
+            return;
+        }
+
+        List<CommandOption> options = GetInputOptions();
+        if (options.Count == 0)
+        {
+            return;
+        }
+
+        if (_currentInputIndex < 0 || _currentInputIndex >= options.Count)
+        {
+            _currentInputIndex = FindInputIndex(InputText.Text);
+            if (_currentInputIndex < 0)
+            {
+                _currentInputIndex = 0;
+            }
+        }
+
+        int next = (_currentInputIndex + direction + options.Count) % options.Count;
+        CommandOption selected = options[next];
+        _currentInputIndex = next;
+        _inputKnobAngle = MapInputIndexToAngle(next, options.Count);
+        _pendingInputCommands.Enqueue(selected);
+        UpdateKnobVisuals(animate: true);
+
+        if (!_knobCommandTimer.IsEnabled)
+        {
+            _knobCommandTimer.Start();
+        }
+    }
+
+    private async Task StepVolumeKnobAsync(int direction)
+    {
+        if (direction == 0)
+        {
+            return;
+        }
+
+        await SendMainCommandNoRefreshAsync(direction > 0 ? "PutMasterVolumeBtn/>" : "PutMasterVolumeBtn/<",
+            direction > 0 ? "Volume up sent." : "Volume down sent.");
+    }
+
+    private void VolumeKnob_MouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        QueueVolumeStep(e.Delta >= 0 ? 1 : -1);
+    }
+
+    private void VolumeKnob_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        _isVolumeKnobDragging = true;
+        _lastVolumeKnobDragAngle = GetKnobAngle(e.GetPosition(VolumeKnobHitArea), VolumeKnobHitArea);
+        _volumeKnobDragAccumulator = 0.0;
+        VolumeKnobHitArea.CaptureMouse();
+    }
+
+    private void VolumeKnob_MouseMove(object sender, MouseEventArgs e)
+    {
+        if (!_isVolumeKnobDragging)
+        {
+            return;
+        }
+
+        double currentAngle = GetKnobAngle(e.GetPosition(VolumeKnobHitArea), VolumeKnobHitArea);
+        double delta = NormalizeAngleDelta(currentAngle - _lastVolumeKnobDragAngle);
+        _lastVolumeKnobDragAngle = currentAngle;
+        _volumeKnobDragAccumulator += delta;
+
+        const double stepThreshold = 11.0;
+        while (Math.Abs(_volumeKnobDragAccumulator) >= stepThreshold)
+        {
+            int direction = Math.Sign(_volumeKnobDragAccumulator);
+            _volumeKnobDragAccumulator -= direction * stepThreshold;
+            QueueVolumeStep(direction);
+        }
+    }
+
+    private void VolumeKnob_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        _isVolumeKnobDragging = false;
+        VolumeKnobHitArea.ReleaseMouseCapture();
+    }
+
+    private void VolumeKnob_MouseLeave(object sender, MouseEventArgs e)
+    {
+        if (!_isVolumeKnobDragging)
+        {
+            return;
+        }
+
+        _isVolumeKnobDragging = false;
+        VolumeKnobHitArea.ReleaseMouseCapture();
+    }
+
+    private void InputKnob_MouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        QueueInputStep(e.Delta >= 0 ? 1 : -1);
+    }
+
+    private void InputKnob_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        _isInputKnobDragging = true;
+        _lastInputKnobDragAngle = GetKnobAngle(e.GetPosition(InputKnobHitArea), InputKnobHitArea);
+        _inputKnobDragAccumulator = 0.0;
+        InputKnobHitArea.CaptureMouse();
+    }
+
+    private void InputKnob_MouseMove(object sender, MouseEventArgs e)
+    {
+        if (!_isInputKnobDragging)
+        {
+            return;
+        }
+
+        double currentAngle = GetKnobAngle(e.GetPosition(InputKnobHitArea), InputKnobHitArea);
+        double delta = NormalizeAngleDelta(currentAngle - _lastInputKnobDragAngle);
+        _lastInputKnobDragAngle = currentAngle;
+        _inputKnobDragAccumulator += delta;
+
+        const double stepThreshold = 14.0;
+        while (Math.Abs(_inputKnobDragAccumulator) >= stepThreshold)
+        {
+            int direction = Math.Sign(_inputKnobDragAccumulator);
+            _inputKnobDragAccumulator -= direction * stepThreshold;
+            QueueInputStep(direction);
+        }
+    }
+
+    private void InputKnob_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        _isInputKnobDragging = false;
+        InputKnobHitArea.ReleaseMouseCapture();
+    }
+
+    private void InputKnob_MouseLeave(object sender, MouseEventArgs e)
+    {
+        if (!_isInputKnobDragging)
+        {
+            return;
+        }
+
+        _isInputKnobDragging = false;
+        InputKnobHitArea.ReleaseMouseCapture();
+    }
+
+    private async Task DiscoverOptionsAsync()
+    {
+        if (_client is null)
+        {
+            return;
+        }
+
+        try
+        {
+            IReadOnlyList<CommandOption> sources = await _client.GetDiscoveredSourcesAsync(MainZoneNameTextBox.Text.Trim());
+            DiscoveredSourceComboBox.ItemsSource = sources;
+            if (sources.Count > 0)
+            {
+                DiscoveredSourceComboBox.SelectedIndex = 0;
+            }
+
+            SyncInputKnobToStatus(InputText.Text);
+            UpdateKnobVisuals(animate: true);
+
+            IReadOnlyList<CommandOption> presets = await _client.GetNetworkPresetOptionsAsync();
+            DiscoveredPresetComboBox.ItemsSource = presets;
+            if (presets.Count > 0)
+            {
+                DiscoveredPresetComboBox.SelectedIndex = 0;
+            }
+
+            LastStatusText.Text = "Discovery complete.";
+        }
+        catch (Exception ex)
+        {
+            LastStatusText.Text = $"Discovery failed: {ex.Message}";
+        }
+    }
+
+    private async Task ExecuteMainCommandAsync(string command, string successMessage)
+    {
+        if (_client is null)
+        {
+            LastStatusText.Text = "Connect first.";
+            return;
+        }
+
+        try
+        {
+            await _client.SendZoneCommandAsync(MainZoneNameTextBox.Text.Trim(), command);
+            LastStatusText.Text = successMessage;
+            await RefreshStatusAsync(showSuccessMessage: false);
+        }
+        catch (Exception ex)
+        {
+            LastStatusText.Text = $"Command failed: {ex.Message}";
+        }
+    }
+
+    private async Task ExecuteNetCommandAsync(string command, string successMessage)
+    {
+        if (_client is null)
+        {
+            LastStatusText.Text = "Connect first.";
+            return;
+        }
+
+        try
+        {
+            await _client.SendNetAudioCommandAsync(command);
+            LastStatusText.Text = successMessage;
+            await RefreshStatusAsync(showSuccessMessage: false);
+        }
+        catch (Exception ex)
+        {
+            LastStatusText.Text = $"Net command failed: {ex.Message}";
+        }
+    }
+
+    private async Task ExecuteZone2CommandAsync(string command, string successMessage)
+    {
+        if (_client is null)
+        {
+            LastStatusText.Text = "Connect first.";
+            return;
+        }
+
+        try
+        {
+            await _client.SendZoneCommandAsync(Zone2NameTextBox.Text.Trim(), command);
+            LastStatusText.Text = successMessage;
+            await RefreshStatusAsync(showSuccessMessage: false);
+        }
+        catch (Exception ex)
+        {
+            LastStatusText.Text = $"Zone2 command failed: {ex.Message}";
+        }
+    }
+
+    private async void PowerOnButton_Click(object sender, RoutedEventArgs e) =>
+        await ExecuteMainCommandAsync("PutZone_OnOff/ON", "Power on sent.");
+
+    private async void PowerOffButton_Click(object sender, RoutedEventArgs e) =>
+        await ExecuteMainCommandAsync("PutZone_OnOff/OFF", "Power off sent.");
+
+    private async void MuteButton_Click(object sender, RoutedEventArgs e) =>
+        await ExecuteMainCommandAsync("PutVolumeMute/TOGGLE", "Mute toggled.");
+
+    private async void VolDownButton_Click(object sender, RoutedEventArgs e) =>
+        await ExecuteMainCommandAsync("PutMasterVolumeBtn/<", "Volume down sent.");
+
+    private async void VolUpButton_Click(object sender, RoutedEventArgs e) =>
+        await ExecuteMainCommandAsync("PutMasterVolumeBtn/>", "Volume up sent.");
+
+    private async void SurroundButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button || button.Tag is not string mode)
+        {
+            return;
+        }
+
+        await ExecuteMainCommandAsync($"PutSurroundMode/{mode}", $"Surround set to {mode}.");
+    }
+
+    private async void QuickSelectButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button || button.Tag is not string slot)
+        {
+            return;
+        }
+
+        await ExecuteMainCommandAsync($"PutUserMode/Quick{slot}", $"Quick select {slot} sent.");
+    }
+
+    private async void EcoButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button || button.Tag is not string eco)
+        {
+            return;
+        }
+
+        await ExecuteMainCommandAsync($"PutECOMode/{eco}", $"Eco mode set to {eco}.");
+    }
+
+    private async void SleepButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button || button.Tag is not string timer)
+        {
+            return;
+        }
+
+        await ExecuteMainCommandAsync($"PutSleepTimer/{timer}", $"Sleep timer set to {timer}.");
+    }
+
+    private async void SourceButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button || button.Tag is not string source)
+        {
+            return;
+        }
+
+        await ExecuteMainCommandAsync($"PutZone_InputFunction/{source}", $"Source set to {source}.");
+    }
+
+    private async void ApplyDiscoveredMainSource_Click(object sender, RoutedEventArgs e)
+    {
+        if (DiscoveredSourceComboBox.SelectedItem is not CommandOption source)
+        {
+            return;
+        }
+
+        await ExecuteMainCommandAsync($"PutZone_InputFunction/{source.Code}", $"Main source set to {source.Label}.");
+    }
+
+    private async void ApplyDiscoveredZone2Source_Click(object sender, RoutedEventArgs e)
+    {
+        if (DiscoveredSourceComboBox.SelectedItem is not CommandOption source)
+        {
+            return;
+        }
+
+        await ExecuteZone2CommandAsync($"PutZone_InputFunction/{source.Code}", $"Zone2 source set to {source.Label}.");
+    }
+
+    private async void ApplyDiscoveredPreset_Click(object sender, RoutedEventArgs e)
+    {
+        if (DiscoveredPresetComboBox.SelectedItem is not CommandOption preset)
+        {
+            return;
+        }
+
+        await ExecuteNetCommandAsync($"PutNetAudioCommand/{preset.Code}", $"Opened preset {preset.Label}.");
+    }
+
+    private async void AllZoneStereoOn_Click(object sender, RoutedEventArgs e) =>
+        await ExecuteMainCommandAsync("PutZone_AllZoneStereo/ON", "All Zone Stereo ON sent.");
+
+    private async void AllZoneStereoOff_Click(object sender, RoutedEventArgs e) =>
+        await ExecuteMainCommandAsync("PutZone_AllZoneStereo/OFF", "All Zone Stereo OFF sent.");
+
+    private async void OpenNetButton_Click(object sender, RoutedEventArgs e) =>
+        await ExecuteMainCommandAsync("PutZone_InputFunction/NET", "Online Music source selected.");
+
+    private async void NetTopButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button || button.Tag is not string top)
+        {
+            return;
+        }
+
+        await ExecuteNetCommandAsync($"PutNetAudioCommand/{top}", $"Net top command {top} sent.");
+    }
+
+    private async void NetCommandButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button || button.Tag is not string action)
+        {
+            return;
+        }
+
+        await ExecuteNetCommandAsync($"PutNetAudioCommand/{action}", $"Net command {action} sent.");
+    }
+
+    private async void Zone2OnButton_Click(object sender, RoutedEventArgs e) =>
+        await ExecuteZone2CommandAsync("PutZone_OnOff/ON", "Zone2 on sent.");
+
+    private async void Zone2OffButton_Click(object sender, RoutedEventArgs e) =>
+        await ExecuteZone2CommandAsync("PutZone_OnOff/OFF", "Zone2 off sent.");
+
+    private async void Zone2MuteButton_Click(object sender, RoutedEventArgs e) =>
+        await ExecuteZone2CommandAsync("PutVolumeMute/TOGGLE", "Zone2 mute toggled.");
+
+    private async void Zone2VolDownButton_Click(object sender, RoutedEventArgs e) =>
+        await ExecuteZone2CommandAsync("PutMasterVolumeBtn/<", "Zone2 volume down sent.");
+
+    private async void Zone2VolUpButton_Click(object sender, RoutedEventArgs e) =>
+        await ExecuteZone2CommandAsync("PutMasterVolumeBtn/>", "Zone2 volume up sent.");
+
+    private async void Zone2QuickSelectButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button || button.Tag is not string slot)
+        {
+            return;
+        }
+
+        await ExecuteZone2CommandAsync($"PutUserMode/Quick{slot}", $"Zone2 quick select {slot} sent.");
+    }
+
+    private async void Zone2SleepButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button || button.Tag is not string timer)
+        {
+            return;
+        }
+
+        await ExecuteZone2CommandAsync($"PutSleepTimer/{timer}", $"Zone2 sleep timer set to {timer}.");
+    }
+
+    private async void ProfileComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isBootstrapping)
+        {
+            return;
+        }
+
+        if (ProfileComboBox.SelectedItem is not ReceiverProfile profile)
+        {
+            return;
+        }
+
+        ReceiverIpTextBox.Text = profile.IpAddress;
+        MainZoneNameTextBox.Text = profile.MainZoneName;
+        Zone2NameTextBox.Text = profile.Zone2Name;
+        await ConnectAndSyncAsync();
+    }
+
+    private async void NewProfileButton_Click(object sender, RoutedEventArgs e)
+    {
+        var setup = new ProfileSetupWindow
+        {
+            Owner = this
+        };
+
+        bool? result = setup.ShowDialog();
+        if (result != true || setup.Result is null)
+        {
+            return;
+        }
+
+        _profiles.Add(setup.Result);
+        await _profileStore.SaveProfilesAsync(_profiles);
+        await LoadProfilesAsync(selectName: setup.Result.Name);
+    }
+
+    private async void SaveProfileButton_Click(object sender, RoutedEventArgs e)
+    {
+        string profileName = ProfileComboBox.Text.Trim();
+        if (string.IsNullOrWhiteSpace(profileName))
+        {
+            LastStatusText.Text = "Profile name is required.";
+            return;
+        }
+
+        ReceiverProfile profile = _profiles.FirstOrDefault(p => string.Equals(p.Name, profileName, StringComparison.OrdinalIgnoreCase))
+            ?? new ReceiverProfile { Name = profileName };
+
+        profile.IpAddress = ReceiverIpTextBox.Text.Trim();
+        profile.MainZoneName = MainZoneNameTextBox.Text.Trim();
+        profile.Zone2Name = Zone2NameTextBox.Text.Trim();
+
+        if (_profiles.All(p => !string.Equals(p.Name, profile.Name, StringComparison.OrdinalIgnoreCase)))
+        {
+            _profiles.Add(profile);
+        }
+
+        await _profileStore.SaveProfilesAsync(_profiles);
+        await LoadProfilesAsync(selectName: profile.Name);
+        LastStatusText.Text = "Profile saved.";
+    }
+
+    private async void DeleteProfileButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (ProfileComboBox.SelectedItem is not ReceiverProfile profile)
+        {
+            LastStatusText.Text = "Select a profile to delete.";
+            return;
+        }
+
+        _profiles.RemoveAll(p => string.Equals(p.Name, profile.Name, StringComparison.OrdinalIgnoreCase));
+        await _profileStore.SaveProfilesAsync(_profiles);
+        await LoadProfilesAsync();
+        LastStatusText.Text = "Profile deleted.";
+    }
+
+    private async Task LoadProfilesAsync(string? selectName = null)
+    {
+        _isBootstrapping = true;
+        try
+        {
+            _profiles.Clear();
+            _profiles.AddRange(await _profileStore.LoadProfilesAsync());
+
+            if (_profiles.Count == 0)
+            {
+                var setup = new ProfileSetupWindow
+                {
+                    Owner = this
+                };
+
+                bool? result = setup.ShowDialog();
+                if (result == true && setup.Result is not null)
+                {
+                    _profiles.Add(setup.Result);
+                    await _profileStore.SaveProfilesAsync(_profiles);
+                }
+            }
+
+            ProfileComboBox.ItemsSource = null;
+            ProfileComboBox.ItemsSource = _profiles;
+
+            ReceiverProfile? selected = null;
+            if (!string.IsNullOrWhiteSpace(selectName))
+            {
+                selected = _profiles.FirstOrDefault(p => string.Equals(p.Name, selectName, StringComparison.OrdinalIgnoreCase));
+            }
+
+            selected ??= _profiles.FirstOrDefault();
+            ProfileComboBox.SelectedItem = selected;
+
+            if (selected is not null)
+            {
+                ReceiverIpTextBox.Text = selected.IpAddress;
+                MainZoneNameTextBox.Text = selected.MainZoneName;
+                Zone2NameTextBox.Text = selected.Zone2Name;
+                await ConnectAndSyncAsync();
+            }
+        }
+        finally
+        {
+            _isBootstrapping = false;
+        }
+    }
+
+    private async Task ConnectAndSyncAsync()
+    {
+        _client = new MarantzReceiverClient(ReceiverIpTextBox.Text.Trim());
+        await RefreshStatusAsync(showSuccessMessage: false);
+        await DiscoverOptionsAsync();
+    }
+}
